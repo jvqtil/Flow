@@ -122,51 +122,21 @@ fun FlowTheme(
 
     val typography = Typography().run {
         copy(
-            displayLarge = displayLarge.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            displayMedium = displayMedium.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            displaySmall = displaySmall.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            headlineLarge = headlineLarge.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            headlineMedium = headlineMedium.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            headlineSmall = headlineSmall.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            titleLarge = titleLarge.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            titleMedium = titleMedium.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            titleSmall = titleSmall.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            bodyLarge = bodyLarge.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            bodyMedium = bodyMedium.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            bodySmall = bodySmall.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            labelLarge = labelLarge.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            labelMedium = labelMedium.copy(
-                fontFamily = uiFont.fontFamily()
-            ),
-            labelSmall = labelSmall.copy(
-                fontFamily = uiFont.fontFamily()
-            )
+            displayLarge = displayLarge.copy(fontFamily = uiFont.fontFamily()),
+            displayMedium = displayMedium.copy(fontFamily = uiFont.fontFamily()),
+            displaySmall = displaySmall.copy(fontFamily = uiFont.fontFamily()),
+            headlineLarge = headlineLarge.copy(fontFamily = uiFont.fontFamily()),
+            headlineMedium = headlineMedium.copy(fontFamily = uiFont.fontFamily()),
+            headlineSmall = headlineSmall.copy(fontFamily = uiFont.fontFamily()),
+            titleLarge = titleLarge.copy(fontFamily = uiFont.fontFamily()),
+            titleMedium = titleMedium.copy(fontFamily = uiFont.fontFamily()),
+            titleSmall = titleSmall.copy(fontFamily = uiFont.fontFamily()),
+            bodyLarge = bodyLarge.copy(fontFamily = uiFont.fontFamily()),
+            bodyMedium = bodyMedium.copy(fontFamily = uiFont.fontFamily()),
+            bodySmall = bodySmall.copy(fontFamily = uiFont.fontFamily()),
+            labelLarge = labelLarge.copy(fontFamily = uiFont.fontFamily()),
+            labelMedium = labelMedium.copy(fontFamily = uiFont.fontFamily()),
+            labelSmall = labelSmall.copy(fontFamily = uiFont.fontFamily())
         )
     }
 
