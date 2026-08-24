@@ -3,6 +3,7 @@ package dev.jvqtil.flow.ui.screens
 import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,11 +28,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -39,30 +35,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.jvqtil.flow.BuildConfig
-import dev.jvqtil.flow.data.AppPreferences
-import kotlinx.coroutines.launch
 
 @SuppressLint("UseKtx")
 @Composable
 fun SettingsScreen(
+    amoled: Boolean,
+    onAmoledChanged: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-
-    var amoled by remember {
-        mutableStateOf(false)
-    }
-
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        AppPreferences
-            .observeAmoled(context)
-            .collect { enabled ->
-                amoled = enabled
-            }
-    }
+    val isDark = isSystemInDarkTheme()
 
     Column(
         modifier = Modifier
@@ -128,7 +110,7 @@ fun SettingsScreen(
                 )
 
                 Text(
-                    text = "Use pure black background color",
+                    text = "Pure black background",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -137,16 +119,7 @@ fun SettingsScreen(
             Switch(
                 checked = amoled,
                 enabled = isDark,
-                onCheckedChange = { enabled ->
-                    amoled = enabled
-
-                    scope.launch {
-                        AppPreferences.setAmoled(
-                            context = context,
-                            enabled = enabled
-                        )
-                    }
-                }
+                onCheckedChange = onAmoledChanged
             )
         }
 

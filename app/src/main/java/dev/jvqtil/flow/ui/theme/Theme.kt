@@ -1,6 +1,9 @@
 package dev.jvqtil.flow.ui.theme
 
 import android.os.Build
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -46,40 +49,62 @@ fun FlowTheme(
         .observeAmoled(context)
         .collectAsState(initial = false)
 
-    val colors = when {
+    val baseColors = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isDark -> {
+            dynamicDarkColorScheme(context)
+        }
+
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            dynamicLightColorScheme(context)
+        }
+
         isDark && amoled -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                dynamicDarkColorScheme(context).copy(
-                    background = FlowAmoledBackground,
-                    surface = FlowAmoledSurface
-                )
-            } else {
-                FallbackAmoledColors
-            }
+            FallbackAmoledColors
         }
 
         isDark -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                dynamicDarkColorScheme(context).copy(
-                    background = FlowBackground,
-                    surface = FlowSurface
-                )
-            } else {
-                FallbackDarkColors
-            }
+            FallbackDarkColors
         }
 
         else -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                dynamicLightColorScheme(context).copy(
-                    background = FlowLightBackground,
-                    surface = FlowLightSurface
-                )
-            } else {
-                FallbackLightColors
-            }
+            FallbackLightColors
         }
     }
+
+    val targetBackground = when {
+        !isDark -> FlowLightBackground
+        amoled -> FlowAmoledBackground
+        else -> FlowBackground
+    }
+
+    val targetSurface = when {
+        !isDark -> FlowLightSurface
+        amoled -> FlowAmoledSurface
+        else -> FlowSurface
+    }
+
+    val background by animateColorAsState(
+        targetValue = targetBackground,
+        animationSpec = tween(
+            durationMillis = 650,
+            easing = LinearEasing
+        ),
+        label = "themeBackground"
+    )
+
+    val surface by animateColorAsState(
+        targetValue = targetSurface,
+        animationSpec = tween(
+            durationMillis = 650,
+            easing = LinearEasing
+        ),
+        label = "themeSurface"
+    )
+
+    val colors = baseColors.copy(
+        background = background,
+        surface = surface
+    )
 
     MaterialTheme(
         colorScheme = colors,

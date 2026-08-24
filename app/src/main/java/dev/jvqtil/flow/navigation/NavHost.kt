@@ -13,8 +13,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -22,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import dev.jvqtil.flow.data.AppPreferences
 import dev.jvqtil.flow.data.NoteRepository
 import dev.jvqtil.flow.ui.FlowFireModel
 import dev.jvqtil.flow.ui.FlowFireModelFactory
@@ -29,11 +32,14 @@ import dev.jvqtil.flow.ui.NoteUiModel
 import dev.jvqtil.flow.ui.screens.HomeScreen
 import dev.jvqtil.flow.ui.screens.NoteScreen
 import dev.jvqtil.flow.ui.screens.SettingsScreen
+import kotlinx.coroutines.launch
 
 @Composable
 fun FlowNavHost(
     repository: NoteRepository
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val navController = rememberNavController()
 
     val flowFireModel: FlowFireModel = viewModel(
@@ -41,6 +47,12 @@ fun FlowNavHost(
     )
 
     val uiState by flowFireModel.uiState.collectAsStateWithLifecycle()
+
+    val amoled by AppPreferences
+        .observeAmoled(context)
+        .collectAsStateWithLifecycle(
+            initialValue = false
+        )
 
     NavHost(
         navController = navController,
@@ -88,12 +100,15 @@ fun FlowNavHost(
                 undoNote = uiState.undoNote,
                 restoringNoteId = uiState.restoringNoteId,
                 deletingNoteIds = uiState.deletingNoteIds,
+
                 onUndo = {
                     flowFireModel.undoDelete()
                 },
+
                 onUndoTimeout = {
                     flowFireModel.clearDeletedNote()
                 },
+
                 onAnimationFinished = { id ->
                     if (uiState.deletingNoteIds.contains(id)) {
                         flowFireModel.clearDeletedAnimation(id)
@@ -103,16 +118,19 @@ fun FlowNavHost(
                         flowFireModel.clearRestoringNote()
                     }
                 },
+
                 onAddNote = {
                     navController.navigate(
                         "$NOTE_ROUTE/new?new=true"
                     )
                 },
+
                 onOpenNote = { id ->
                     navController.navigate(
                         "$NOTE_ROUTE/$id?new=false"
                     )
                 },
+
                 onOpenSettings = {
                     navController.navigate(SETTINGS_ROUTE)
                 }
@@ -121,6 +139,17 @@ fun FlowNavHost(
 
         composable(SETTINGS_ROUTE) {
             SettingsScreen(
+                amoled = amoled,
+
+                onAmoledChanged = { enabled ->
+                    scope.launch {
+                        AppPreferences.setAmoled(
+                            context = context,
+                            enabled = enabled
+                        )
+                    }
+                },
+
                 onBack = {
                     navController.popBackStack()
                 }
