@@ -29,6 +29,8 @@ import dev.jvqtil.flow.data.NoteRepository
 import dev.jvqtil.flow.ui.FlowFireModel
 import dev.jvqtil.flow.ui.FlowFireModelFactory
 import dev.jvqtil.flow.ui.NoteUiModel
+import dev.jvqtil.flow.ui.components.EditorFont
+import dev.jvqtil.flow.ui.components.UiFont
 import dev.jvqtil.flow.ui.screens.HomeScreen
 import dev.jvqtil.flow.ui.screens.NoteScreen
 import dev.jvqtil.flow.ui.screens.SettingsScreen
@@ -52,6 +54,18 @@ fun FlowNavHost(
         .observeAmoled(context)
         .collectAsStateWithLifecycle(
             initialValue = false
+        )
+
+    val uiFont by AppPreferences
+        .observeUiFont(context)
+        .collectAsStateWithLifecycle(
+            initialValue = UiFont.DEFAULT
+        )
+
+    val editorFont by AppPreferences
+        .observeEditorFont(context)
+        .collectAsStateWithLifecycle(
+            initialValue = EditorFont.UI_FONT
         )
 
     NavHost(
@@ -140,12 +154,32 @@ fun FlowNavHost(
         composable(SETTINGS_ROUTE) {
             SettingsScreen(
                 amoled = amoled,
+                uiFont = uiFont,
+                editorFont = editorFont,
 
                 onAmoledChanged = { enabled ->
                     scope.launch {
                         AppPreferences.setAmoled(
                             context = context,
                             enabled = enabled
+                        )
+                    }
+                },
+
+                onUiFontChanged = { font ->
+                    scope.launch {
+                        AppPreferences.setUiFont(
+                            context = context,
+                            font = font
+                        )
+                    }
+                },
+
+                onEditorFontChanged = { font ->
+                    scope.launch {
+                        AppPreferences.setEditorFont(
+                            context = context,
+                            font = font
                         )
                     }
                 },
@@ -209,12 +243,17 @@ fun FlowNavHost(
             NoteScreen(
                 text = note?.text ?: "",
                 autoFocus = isNew,
+                uiFont = uiFont,
+                editorFont = editorFont,
+
                 onBack = {
                     saveAndBack()
                 },
+
                 onTextChange = { text ->
                     note = note?.copy(text = text)
                 },
+
                 onDelete = {
                     val currentNote = note
 

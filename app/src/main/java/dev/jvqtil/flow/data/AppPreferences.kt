@@ -3,7 +3,10 @@ package dev.jvqtil.flow.data
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import dev.jvqtil.flow.ui.components.EditorFont
+import dev.jvqtil.flow.ui.components.UiFont
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -13,9 +16,18 @@ private val Context.dataStore by preferencesDataStore(
 
 object AppPreferences {
 
-    private val AMOLED_KEY = booleanPreferencesKey("amoled")
+    private val AMOLED_KEY =
+        booleanPreferencesKey("AMOLED")
 
-    fun observeAmoled(context: Context): Flow<Boolean> {
+    private val UI_FONT_KEY =
+        stringPreferencesKey("ui_font")
+
+    private val EDITOR_FONT_KEY =
+        stringPreferencesKey("editor_font")
+
+    fun observeAmoled(
+        context: Context
+    ): Flow<Boolean> {
         return context.dataStore.data.map { preferences ->
             preferences[AMOLED_KEY] ?: false
         }
@@ -27,6 +39,52 @@ object AppPreferences {
     ) {
         context.dataStore.edit { preferences ->
             preferences[AMOLED_KEY] = enabled
+        }
+    }
+
+    fun observeUiFont(
+        context: Context
+    ): Flow<UiFont> {
+        return context.dataStore.data.map { preferences ->
+            preferences[UI_FONT_KEY]
+                ?.let {
+                    runCatching {
+                        UiFont.valueOf(it)
+                    }.getOrNull()
+                }
+                ?: UiFont.DEFAULT
+        }
+    }
+
+    suspend fun setUiFont(
+        context: Context,
+        font: UiFont
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[UI_FONT_KEY] = font.name
+        }
+    }
+
+    fun observeEditorFont(
+        context: Context
+    ): Flow<EditorFont> {
+        return context.dataStore.data.map { preferences ->
+            preferences[EDITOR_FONT_KEY]
+                ?.let {
+                    runCatching {
+                        EditorFont.valueOf(it)
+                    }.getOrNull()
+                }
+                ?: EditorFont.UI_FONT
+        }
+    }
+
+    suspend fun setEditorFont(
+        context: Context,
+        font: EditorFont
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[EDITOR_FONT_KEY] = font.name
         }
     }
 }

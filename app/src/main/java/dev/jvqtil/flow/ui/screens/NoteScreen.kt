@@ -35,6 +35,9 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.jvqtil.flow.ui.components.EditorFont
+import dev.jvqtil.flow.ui.components.UiFont
+import dev.jvqtil.flow.ui.components.fontFamily
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -49,6 +52,8 @@ private val NotePrompts = listOf(
 fun NoteScreen(
     text: String,
     autoFocus: Boolean,
+    uiFont: UiFont,
+    editorFont: EditorFont,
     onBack: () -> Unit,
     onTextChange: (String) -> Unit,
     onDelete: () -> Unit
@@ -79,6 +84,11 @@ fun NoteScreen(
 
     val cursorVisible = keyboardVisible && hasFocus
 
+    val editorFontFamily = when (editorFont) {
+        EditorFont.UI_FONT -> uiFont.fontFamily()
+        else -> editorFont.fontFamily(uiFont)
+    }
+
     BasicTextField(
         value = text,
         onValueChange = onTextChange,
@@ -93,6 +103,7 @@ fun NoteScreen(
             .navigationBarsPadding()
             .imePadding(),
         textStyle = TextStyle(
+            fontFamily = editorFontFamily,
             color = MaterialTheme.colorScheme.onBackground,
             fontSize = 17.sp,
             lineHeight = 26.sp
@@ -154,7 +165,9 @@ fun NoteScreen(
                     if (text.isEmpty()) {
                         Text(
                             text = prompt,
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontFamily = editorFontFamily
+                            ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
