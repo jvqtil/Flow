@@ -7,10 +7,13 @@ Notes app for Android. Fully native. Just your notes, no bullshit
 - Minimal note editor
 - Local-only storage
 - Smooth, yet fast animations
+- Swipe gestures
+- Drag-and-drop note reordering
 - Material UI
 - Dynamic colors on Android 12+
-- Predictive back gesture support (Android 16+)
 - AMOLED background option
+- Predictive back gesture support (Android 16+)
+- Customizable UI and editor fonts
 
 ## Installation
 <a href="../../releases/latest">
