@@ -10,6 +10,10 @@ class NoteRepository(
         return noteDao.observeNotes()
     }
 
+    suspend fun getAllNotes(): List<Note> {
+        return noteDao.getAllNotes()
+    }
+
     suspend fun getNote(id: String): Note? {
         return noteDao.getById(id)
     }
@@ -32,6 +36,12 @@ class NoteRepository(
 
     suspend fun restoreNote(note: Note) {
         noteDao.upsert(note)
+    }
+
+    suspend fun restoreNotes(notes: List<Note>) {
+        notes.forEach { note ->
+            noteDao.upsert(note)
+        }
     }
 
     suspend fun updateNotePositions(

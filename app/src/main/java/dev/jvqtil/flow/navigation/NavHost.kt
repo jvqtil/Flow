@@ -1,5 +1,8 @@
 package dev.jvqtil.flow.navigation
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.jvqtil.flow.data.AppPreferences
+import dev.jvqtil.flow.data.BackupManager
 import dev.jvqtil.flow.data.NoteRepository
 import dev.jvqtil.flow.ui.FlowFireModel
 import dev.jvqtil.flow.ui.FlowFireModelFactory
@@ -43,6 +47,65 @@ fun FlowNavHost(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                runCatching {
+                    val notes = repository.getAllNotes()
+
+                    BackupManager.exportNotes(
+                        context = context,
+                        uri = uri,
+                        notes = notes
+                    )
+                }.onSuccess {
+                    Toast.makeText(
+                        context,
+                        "Notes exported",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }.onFailure {
+                    Toast.makeText(
+                        context,
+                        "Export failed",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                runCatching {
+                    val notes = BackupManager.importNotes(
+                        context = context,
+                        uri = uri
+                    )
+
+                    repository.restoreNotes(notes)
+                }.onSuccess {
+                    Toast.makeText(
+                        context,
+                        "Notes imported",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }.onFailure {
+                    Toast.makeText(
+                        context,
+                        "Import failed",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
 
     val flowFireModel: FlowFireModel = viewModel(
         factory = FlowFireModelFactory(repository)
@@ -215,6 +278,18 @@ fun FlowNavHost(
                             lines = lines
                         )
                     }
+                },
+                onExport = {
+                    exportLauncher.launch("flow-backup.json")
+                },
+                onImport = {
+                    importLauncher.launch(
+                        arrayOf(
+                            "application/json",
+                            "text/json",
+                            "text/plain"
+                        )
+                    )
                 },
                 onBack = {
                     navController.popBackStack()

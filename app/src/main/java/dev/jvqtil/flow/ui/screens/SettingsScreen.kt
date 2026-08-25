@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.NorthEast
@@ -51,10 +53,13 @@ fun SettingsScreen(
     onUiFontChanged: (UiFont) -> Unit,
     onEditorFontChanged: (EditorFont) -> Unit,
     onPreviewLinesChanged: (Int) -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
@@ -62,6 +67,7 @@ fun SettingsScreen(
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
+            .verticalScroll(scrollState)
             .padding(horizontal = 20.dp)
     ) {
         Box(
@@ -89,7 +95,7 @@ fun SettingsScreen(
         }
 
         Spacer(
-            modifier = Modifier.height(28.dp)
+            modifier = Modifier.height(16.dp)
         )
 
         Text(
@@ -100,27 +106,33 @@ fun SettingsScreen(
         )
 
         Spacer(
-            modifier = Modifier.height(8.dp)
+            modifier = Modifier.height(12.dp)
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
+                .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 16.dp)
             ) {
                 Text(
-                    text = "AMOLED",
+                    text = "Pure black",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground
                 )
 
+                Spacer(
+                    modifier = Modifier.height(2.dp)
+                )
+
                 Text(
-                    text = "Pure black background",
+                    text = "For AMOLED displays · Dark mode only",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -133,12 +145,16 @@ fun SettingsScreen(
             )
         }
 
+        Spacer(
+            modifier = Modifier.height(12.dp)
+        )
+
         HorizontalDivider(
             color = MaterialTheme.colorScheme.surfaceContainerHighest
         )
 
         Spacer(
-            modifier = Modifier.height(20.dp)
+            modifier = Modifier.height(16.dp)
         )
 
         Text(
@@ -149,7 +165,7 @@ fun SettingsScreen(
         )
 
         Spacer(
-            modifier = Modifier.height(10.dp)
+            modifier = Modifier.height(8.dp)
         )
 
         FontSettingCard(
@@ -191,7 +207,7 @@ fun SettingsScreen(
         )
 
         Spacer(
-            modifier = Modifier.height(10.dp)
+            modifier = Modifier.height(8.dp)
         )
 
         FontSettingCard(
@@ -233,7 +249,7 @@ fun SettingsScreen(
         )
 
         Spacer(
-            modifier = Modifier.height(20.dp)
+            modifier = Modifier.height(16.dp)
         )
 
         HorizontalDivider(
@@ -241,7 +257,7 @@ fun SettingsScreen(
         )
 
         Spacer(
-            modifier = Modifier.height(20.dp)
+            modifier = Modifier.height(16.dp)
         )
 
         Text(
@@ -266,11 +282,86 @@ fun SettingsScreen(
             steps = 8
         )
 
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
+
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.surfaceContainerHighest
+        )
+
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
+
+        Text(
+            text = "Backup & Restore",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                onClick = onExport,
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Export",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            Surface(
+                onClick = onImport,
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Import",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
+
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 20.dp),
-            contentAlignment = Alignment.BottomCenter
+                .fillMaxWidth()
+                .padding(
+                    top = 32.dp,
+                    bottom = 12.dp
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -302,7 +393,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "GitHub",
+                            text = "Source Code",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -334,7 +425,7 @@ private fun FontSettingCard(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -396,15 +487,15 @@ private fun FontOptionButton(
         } else {
             MaterialTheme.colorScheme.surfaceContainerHigh
         },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         modifier = modifier
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    horizontal = 4.dp,
-                    vertical = 10.dp
+                    horizontal = 12.dp,
+                    vertical = 12.dp
                 ),
             contentAlignment = Alignment.Center
         ) {

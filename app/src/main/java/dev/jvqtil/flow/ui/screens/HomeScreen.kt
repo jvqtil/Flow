@@ -1,7 +1,6 @@
 package dev.jvqtil.flow.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -260,18 +259,6 @@ fun HomeScreen(
                             key = note.id,
                             enabled = canReorder
                         ) { isDragging ->
-
-                            val elevation by animateDpAsState(
-                                targetValue =
-                                    if (isDragging) {
-                                        18.dp
-                                    } else {
-                                        0.dp
-                                    },
-                                animationSpec = tween(180),
-                                label = "dragElevation"
-                            )
-
                             val scale by androidx.compose.animation.core.animateFloatAsState(
                                 targetValue =
                                     if (isDragging) {
@@ -281,17 +268,6 @@ fun HomeScreen(
                                     },
                                 animationSpec = tween(180),
                                 label = "dragScale"
-                            )
-
-                            val alpha by androidx.compose.animation.core.animateFloatAsState(
-                                targetValue =
-                                    if (isDragging) {
-                                        0.98f
-                                    } else {
-                                        1f
-                                    },
-                                animationSpec = tween(150),
-                                label = "dragAlpha"
                             )
 
                             Box(
@@ -306,9 +282,6 @@ fun HomeScreen(
                                     .graphicsLayer {
                                         scaleX = scale
                                         scaleY = scale
-                                        this.alpha = alpha
-                                        shadowElevation =
-                                            elevation.toPx()
                                     }
                             ) {
                                 NoteCard(
