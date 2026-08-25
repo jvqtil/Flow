@@ -45,6 +45,7 @@ fun HomeScreen(
     onAnimationFinished: (String) -> Unit,
     onAddNote: () -> Unit,
     onOpenNote: (String) -> Unit,
+    onDeleteNote: (String) -> Unit,
     onOpenSettings: () -> Unit
 ) {
     val visibleNotes = buildList {
@@ -132,6 +133,11 @@ fun HomeScreen(
                         isDeleting = isDeleting,
                         onAnimationFinished = {
                             onAnimationFinished(note.id)
+                        },
+                        onDelete = {
+                            if (!isDeleting && !isRestoring) {
+                                onDeleteNote(note.id)
+                            }
                         },
                         onClick = {
                             if (!isDeleting && !isRestoring) {

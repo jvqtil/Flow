@@ -145,6 +145,14 @@ fun FlowNavHost(
                     )
                 },
 
+                onDeleteNote = { id ->
+                    uiState.notes
+                        .firstOrNull { it.id == id }
+                        ?.let { note ->
+                            flowFireModel.deleteNote(note)
+                        }
+                },
+
                 onOpenSettings = {
                     navController.navigate(SETTINGS_ROUTE)
                 }
