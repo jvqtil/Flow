@@ -1,6 +1,5 @@
 package dev.jvqtil.flow.ui.screens
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -24,6 +23,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -39,16 +39,18 @@ import dev.jvqtil.flow.BuildConfig
 import dev.jvqtil.flow.ui.components.EditorFont
 import dev.jvqtil.flow.ui.components.UiFont
 import dev.jvqtil.flow.ui.components.fontFamily
+import kotlin.math.roundToInt
 
-@SuppressLint("UseKtx")
 @Composable
 fun SettingsScreen(
     amoled: Boolean,
     uiFont: UiFont,
     editorFont: EditorFont,
+    previewLines: Int,
     onAmoledChanged: (Boolean) -> Unit,
     onUiFontChanged: (UiFont) -> Unit,
     onEditorFontChanged: (EditorFont) -> Unit,
+    onPreviewLinesChanged: (Int) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -228,6 +230,40 @@ fun SettingsScreen(
                     }
                 )
             )
+        )
+
+        Spacer(
+            modifier = Modifier.height(20.dp)
+        )
+
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.surfaceContainerHighest
+        )
+
+        Spacer(
+            modifier = Modifier.height(20.dp)
+        )
+
+        Text(
+            text = "Preview",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Text(
+            text = "$previewLines lines",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Slider(
+            value = previewLines.toFloat(),
+            onValueChange = { value ->
+                onPreviewLinesChanged(value.roundToInt())
+            },
+            valueRange = 3f..12f,
+            steps = 8
         )
 
         Box(

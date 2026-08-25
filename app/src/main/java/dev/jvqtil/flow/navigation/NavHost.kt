@@ -72,6 +72,12 @@ fun FlowNavHost(
             initialValue = EditorFont.UI_FONT
         )
 
+    val previewLines by AppPreferences
+        .observePreviewLines(context)
+        .collectAsStateWithLifecycle(
+            initialValue = 4
+        )
+
     NavHost(
         navController = navController,
         startDestination = HOME_ROUTE,
@@ -114,6 +120,7 @@ fun FlowNavHost(
         composable(HOME_ROUTE) {
             HomeScreen(
                 notes = uiState.notes,
+                previewLines = previewLines,
                 shouldScrollToTop = shouldScrollHomeToTop,
                 onScrollToTopHandled = {
                     shouldScrollHomeToTop = false
@@ -176,7 +183,7 @@ fun FlowNavHost(
                 amoled = amoled,
                 uiFont = uiFont,
                 editorFont = editorFont,
-
+                previewLines = previewLines,
                 onAmoledChanged = { enabled ->
                     scope.launch {
                         AppPreferences.setAmoled(
@@ -185,7 +192,6 @@ fun FlowNavHost(
                         )
                     }
                 },
-
                 onUiFontChanged = { font ->
                     scope.launch {
                         AppPreferences.setUiFont(
@@ -194,7 +200,6 @@ fun FlowNavHost(
                         )
                     }
                 },
-
                 onEditorFontChanged = { font ->
                     scope.launch {
                         AppPreferences.setEditorFont(
@@ -203,7 +208,14 @@ fun FlowNavHost(
                         )
                     }
                 },
-
+                onPreviewLinesChanged = { lines ->
+                    scope.launch {
+                        AppPreferences.setPreviewLines(
+                            context = context,
+                            lines = lines
+                        )
+                    }
+                },
                 onBack = {
                     navController.popBackStack()
                 }

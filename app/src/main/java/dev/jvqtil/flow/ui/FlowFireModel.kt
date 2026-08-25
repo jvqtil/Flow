@@ -59,7 +59,11 @@ class FlowFireModel(
     fun saveNewNote(
         note: NoteUiModel
     ) {
-        if (note.text.isBlank()) {
+        val normalizedNote = note.copy(
+            text = trimEmptyLines(note.text)
+        )
+
+        if (normalizedNote.text.isBlank()) {
             return
         }
 
@@ -75,18 +79,22 @@ class FlowFireModel(
     fun updateNote(
         note: NoteUiModel
     ) {
+        val normalizedNote = note.copy(
+            text = trimEmptyLines(note.text)
+        )
+
         viewModelScope.launch {
             databaseMutex.withLock {
-                val existing = repository.getNote(note.id)
+                val existing = repository.getNote(normalizedNote.id)
                     ?: return@withLock
 
-                if (note.text.isBlank()) {
+                if (normalizedNote.text.isBlank()) {
                     deleteExistingNote(existing)
                     return@withLock
                 }
 
                 repository.updateNote(
-                    note.toDataModel(
+                    normalizedNote.toDataModel(
                         createdAt = existing.createdAt,
                         position = existing.position
                     )
@@ -224,4 +232,10 @@ class FlowFireModelFactory(
             "Unknown ViewModel class: ${modelClass.name}"
         )
     }
+}
+
+private fun trimEmptyLines(text: String): String {
+    return text
+        .replace(Regex("""\A(?:[ \t]*\r?\n)+"""), "")
+        .replace(Regex("""(?:\r?\n[ \t]*)+\z"""), "")
 }

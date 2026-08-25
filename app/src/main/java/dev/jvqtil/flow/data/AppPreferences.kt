@@ -3,6 +3,7 @@ package dev.jvqtil.flow.data
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.jvqtil.flow.ui.components.EditorFont
@@ -24,6 +25,9 @@ object AppPreferences {
 
     private val EDITOR_FONT_KEY =
         stringPreferencesKey("editor_font")
+
+    private val PREVIEW_LINES_KEY =
+        intPreferencesKey("preview_lines")
 
     fun observeAmoled(
         context: Context
@@ -85,6 +89,23 @@ object AppPreferences {
     ) {
         context.dataStore.edit { preferences ->
             preferences[EDITOR_FONT_KEY] = font.name
+        }
+    }
+
+    fun observePreviewLines(
+        context: Context
+    ): Flow<Int> {
+        return context.dataStore.data.map { preferences ->
+            preferences[PREVIEW_LINES_KEY] ?: 4
+        }
+    }
+
+    suspend fun setPreviewLines(
+        context: Context,
+        lines: Int
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[PREVIEW_LINES_KEY] = lines
         }
     }
 }

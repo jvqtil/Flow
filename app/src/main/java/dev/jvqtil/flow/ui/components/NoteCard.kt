@@ -28,13 +28,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -45,6 +49,7 @@ import kotlin.math.roundToInt
 @Composable
 fun NoteCard(
     note: NoteUiModel,
+    previewLines: Int,
     shouldAnimate: Boolean,
     isDeleting: Boolean,
     isDragging: Boolean,
@@ -63,6 +68,10 @@ fun NoteCard(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
 
+    var textLayoutResult by remember(note.id, previewLines) {
+        mutableStateOf<TextLayoutResult?>(null)
+    }
+
     val actionWidthPx =
         with(density) {
             64.dp.toPx()
@@ -76,6 +85,9 @@ fun NoteCard(
     var lastCloseActionsToken by remember(note.id) {
         mutableFloatStateOf(0f)
     }
+
+    val surfaceColor =
+        MaterialTheme.colorScheme.surfaceContainer
 
     LaunchedEffect(
         shouldAnimate,
@@ -267,13 +279,38 @@ fun NoteCard(
                     }
                     .padding(18.dp)
             ) {
-                Text(
-                    text = note.text,
-                    maxLines = 3,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .drawWithContent {
+                            drawContent()
+
+                            if (textLayoutResult?.hasVisualOverflow == true) {
+                                drawRect(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            surfaceColor.copy(alpha = 0f),
+                                            surfaceColor.copy(alpha = 0.75f),
+                                            surfaceColor
+                                        ),
+                                        startY = size.height * 0.90f,
+                                        endY = size.height
+                                    )
+                                )
+                            }
+                        }
+                ) {
+                    Text(
+                        text = note.text,
+                        maxLines = previewLines,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        onTextLayout = {
+                            textLayoutResult = it
+                        }
+                    )
+                }
             }
         }
     }

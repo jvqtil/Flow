@@ -50,6 +50,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun HomeScreen(
     notes: List<NoteUiModel>,
+    previewLines: Int,
     shouldScrollToTop: Boolean,
     onScrollToTopHandled: () -> Unit,
     pendingDeletedNotes: Map<String, Note>,
@@ -312,6 +313,7 @@ fun HomeScreen(
                             ) {
                                 NoteCard(
                                     note = note,
+                                    previewLines = previewLines,
                                     shouldAnimate =
                                         isDeleting || isRestoring,
                                     isDeleting = isDeleting,
