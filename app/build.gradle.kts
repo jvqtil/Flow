@@ -21,8 +21,31 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = (
+                    providers.gradleProperty("FLOW_KEYSTORE").orNull
+                        ?: System.getenv("FLOW_KEYSTORE")
+                    )?.let { rootProject.file(it) }
+
+            storePassword =
+                providers.gradleProperty("FLOW_KEYSTORE_PASSWORD").orNull
+                    ?: System.getenv("FLOW_KEYSTORE_PASSWORD")
+
+            keyAlias =
+                providers.gradleProperty("FLOW_KEY_ALIAS").orNull
+                    ?: System.getenv("FLOW_KEY_ALIAS")
+
+            keyPassword =
+                providers.gradleProperty("FLOW_KEY_PASSWORD").orNull
+                    ?: System.getenv("FLOW_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
+
             optimization {
                 enable = false
             }
