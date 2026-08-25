@@ -387,9 +387,9 @@ fun HomeScreen(
             exit =
                 slideOutVertically(
                     targetOffsetY = { it },
-                    animationSpec = tween(300)
+                    animationSpec = tween(140)
                 ) + fadeOut(
-                    animationSpec = tween(200)
+                    animationSpec = tween(100)
                 )
         ) {
             undoNote?.let { note ->
