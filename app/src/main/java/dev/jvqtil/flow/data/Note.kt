@@ -9,5 +9,6 @@ data class Note(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
     val text: String,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val position: Long = 0L
 )

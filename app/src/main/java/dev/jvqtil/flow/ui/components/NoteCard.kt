@@ -1,10 +1,10 @@
 package dev.jvqtil.flow.ui.components
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -26,8 +26,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -44,6 +47,9 @@ fun NoteCard(
     note: NoteUiModel,
     shouldAnimate: Boolean,
     isDeleting: Boolean,
+    isDragging: Boolean,
+    closeActionsToken: Int,
+    @SuppressLint("ModifierParameter") dragHandleModifier: Modifier = Modifier,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onAnimationFinished: () -> Unit
@@ -57,12 +63,18 @@ fun NoteCard(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
 
-    val actionWidthPx = with(density) {
-        64.dp.toPx()
-    }
+    val actionWidthPx =
+        with(density) {
+            64.dp.toPx()
+        }
 
-    val offsetX = remember(note.id) {
-        Animatable(0f)
+    val offsetX =
+        remember(note.id) {
+            Animatable(0f)
+        }
+
+    var lastCloseActionsToken by remember(note.id) {
+        mutableFloatStateOf(0f)
     }
 
     LaunchedEffect(
@@ -78,46 +90,99 @@ fun NoteCard(
         shouldAnimate,
         isDeleting
     ) {
-        if (!shouldAnimate || !visibleState.isIdle) {
+        if (
+            !shouldAnimate ||
+            !visibleState.isIdle
+        ) {
             return@LaunchedEffect
         }
 
-        if (isDeleting && !visibleState.currentState) {
+        if (
+            isDeleting &&
+            !visibleState.currentState
+        ) {
             onAnimationFinished()
         }
 
-        if (!isDeleting && visibleState.currentState) {
+        if (
+            !isDeleting &&
+            visibleState.currentState
+        ) {
             onAnimationFinished()
         }
     }
 
+    LaunchedEffect(closeActionsToken) {
+        if (closeActionsToken == 0) {
+            return@LaunchedEffect
+        }
+
+        if (
+            lastCloseActionsToken ==
+            closeActionsToken.toFloat()
+        ) {
+            return@LaunchedEffect
+        }
+
+        lastCloseActionsToken =
+            closeActionsToken.toFloat()
+
+        offsetX.snapTo(0f)
+    }
+
+    val cornerRadius by animateDpAsState(
+        targetValue =
+            if (isDragging) {
+                24.dp
+            } else {
+                20.dp
+            },
+        animationSpec = tween(180),
+        label = "cornerRadius"
+    )
+
     AnimatedVisibility(
         visibleState = visibleState,
-        enter = slideInVertically(
-            initialOffsetY = { it },
-            animationSpec = tween(400)
-        ) + fadeIn(
-            animationSpec = tween(280)
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { it },
-            animationSpec = tween(400)
-        ) + fadeOut(
-            animationSpec = tween(280)
-        )
+        enter =
+            slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = tween(360)
+            ) + fadeIn(
+                animationSpec = tween(240)
+            ),
+        exit =
+            slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = tween(360)
+            ) + fadeOut(
+                animationSpec = tween(220)
+            )
     ) {
         Box(
             modifier = Modifier.fillMaxWidth()
         ) {
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.align(Alignment.CenterEnd)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.error
-                )
+            if (offsetX.value < -0.5f) {
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            offsetX.animateTo(
+                                targetValue = 0f,
+                                animationSpec = tween(160)
+                            )
+
+                            onDelete()
+                        }
+                    },
+                    modifier = Modifier.align(
+                        Alignment.CenterEnd
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
 
             Box(
@@ -130,50 +195,59 @@ fun NoteCard(
                         )
                     }
                     .background(
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        shape = RoundedCornerShape(20.dp)
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .surfaceContainer,
+                        shape =
+                            RoundedCornerShape(
+                                cornerRadius
+                            )
                     )
+                    .then(dragHandleModifier)
                     .pointerInput(note.id) {
                         detectHorizontalDragGestures(
-                            onHorizontalDrag = { _, dragAmount ->
+                            onHorizontalDrag = { _,
+                                                 dragAmount ->
+                                if (isDeleting || isDragging) {
+                                    return@detectHorizontalDragGestures
+                                }
+
                                 scope.launch {
                                     offsetX.snapTo(
-                                        (offsetX.value + dragAmount)
-                                            .coerceIn(
+                                        (
+                                                offsetX.value +
+                                                        dragAmount
+                                                ).coerceIn(
                                                 -actionWidthPx,
                                                 0f
                                             )
                                     )
                                 }
                             },
-
                             onDragEnd = {
                                 scope.launch {
-                                    val targetValue =
-                                        if (offsetX.value <= -actionWidthPx / 2f) {
+                                    val target =
+                                        if (
+                                            offsetX.value <=
+                                            -actionWidthPx / 2f
+                                        ) {
                                             -actionWidthPx
                                         } else {
                                             0f
                                         }
 
                                     offsetX.animateTo(
-                                        targetValue = targetValue,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessMediumLow
-                                        )
+                                        targetValue = target,
+                                        animationSpec = tween(220)
                                     )
                                 }
                             },
-
                             onDragCancel = {
                                 scope.launch {
                                     offsetX.animateTo(
                                         targetValue = 0f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                            stiffness = Spring.StiffnessMediumLow
-                                        )
+                                        animationSpec = tween(220)
                                     )
                                 }
                             }
@@ -184,13 +258,8 @@ fun NoteCard(
                             scope.launch {
                                 offsetX.animateTo(
                                     targetValue = 0f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
-                                    )
+                                    animationSpec = tween(220)
                                 )
-
-                                onClick()
                             }
                         } else {
                             onClick()

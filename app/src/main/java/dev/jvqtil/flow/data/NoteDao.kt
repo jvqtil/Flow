@@ -11,11 +11,29 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface NoteDao {
 
-    @Query("SELECT * FROM notes ORDER BY createdAt DESC")
+    @Query(
+        "SELECT * FROM notes " +
+                "ORDER BY position ASC, createdAt DESC"
+    )
     fun observeNotes(): Flow<List<Note>>
 
     @Query("SELECT * FROM notes WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): Note?
+
+    @Query(
+        "UPDATE notes " +
+                "SET position = position + 1"
+    )
+    suspend fun shiftPositionsDown()
+
+    @Query(
+        "UPDATE notes SET position = :position " +
+                "WHERE id = :id"
+    )
+    suspend fun updatePosition(
+        id: String,
+        position: Long
+    )
 
     @Insert
     suspend fun insert(note: Note)

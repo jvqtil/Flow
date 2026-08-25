@@ -50,6 +50,10 @@ fun FlowNavHost(
 
     val uiState by flowFireModel.uiState.collectAsStateWithLifecycle()
 
+    var shouldScrollHomeToTop by remember {
+        mutableStateOf(false)
+    }
+
     val amoled by AppPreferences
         .observeAmoled(context)
         .collectAsStateWithLifecycle(
@@ -101,15 +105,19 @@ fun FlowNavHost(
         popExitTransition = {
             slideOutHorizontally(
                 targetOffsetX = { it / 8 },
-                animationSpec = tween(280)
+                animationSpec = tween(330)
             ) + fadeOut(
-                animationSpec = tween(240)
+                animationSpec = tween(270)
             )
         }
     ) {
         composable(HOME_ROUTE) {
             HomeScreen(
                 notes = uiState.notes,
+                shouldScrollToTop = shouldScrollHomeToTop,
+                onScrollToTopHandled = {
+                    shouldScrollHomeToTop = false
+                },
                 pendingDeletedNotes = uiState.pendingDeletedNotes,
                 undoNote = uiState.undoNote,
                 restoringNoteId = uiState.restoringNoteId,
@@ -151,6 +159,10 @@ fun FlowNavHost(
                         ?.let { note ->
                             flowFireModel.deleteNote(note)
                         }
+                },
+
+                onReorderNotes = { noteIds ->
+                    flowFireModel.updateNotePositions(noteIds)
                 },
 
                 onOpenSettings = {
@@ -211,14 +223,23 @@ fun FlowNavHost(
             )
         ) { entry ->
 
-            val routeNoteId = entry.arguments?.getString(NOTE_ID)
-            val isNew = entry.arguments?.getBoolean("new") ?: false
+            val routeNoteId =
+                entry.arguments?.getString(NOTE_ID)
 
-            var note by remember(routeNoteId, isNew) {
+            val isNew =
+                entry.arguments?.getBoolean("new") ?: false
+
+            var note by remember(
+                routeNoteId,
+                isNew
+            ) {
                 mutableStateOf<NoteUiModel?>(null)
             }
 
-            LaunchedEffect(routeNoteId, isNew) {
+            LaunchedEffect(
+                routeNoteId,
+                isNew
+            ) {
                 note = when {
                     isNew -> {
                         flowFireModel.createNote()
@@ -240,6 +261,7 @@ fun FlowNavHost(
                 if (currentNote != null) {
                     if (isNew) {
                         flowFireModel.saveNewNote(currentNote)
+                        shouldScrollHomeToTop = true
                     } else {
                         flowFireModel.updateNote(currentNote)
                     }

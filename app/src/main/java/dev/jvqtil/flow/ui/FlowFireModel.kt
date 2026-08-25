@@ -39,7 +39,9 @@ class FlowFireModel(
         }
     }
 
-    suspend fun getNote(id: String): NoteUiModel? {
+    suspend fun getNote(
+        id: String
+    ): NoteUiModel? {
         return databaseMutex.withLock {
             repository
                 .getNote(id)
@@ -54,21 +56,25 @@ class FlowFireModel(
         )
     }
 
-    fun saveNewNote(note: NoteUiModel) {
+    fun saveNewNote(
+        note: NoteUiModel
+    ) {
         if (note.text.isBlank()) {
             return
         }
 
         viewModelScope.launch {
             databaseMutex.withLock {
-                repository.insertNote(
+                repository.insertNoteAtTop(
                     note.toDataModel()
                 )
             }
         }
     }
 
-    fun updateNote(note: NoteUiModel) {
+    fun updateNote(
+        note: NoteUiModel
+    ) {
         viewModelScope.launch {
             databaseMutex.withLock {
                 val existing = repository.getNote(note.id)
@@ -81,14 +87,27 @@ class FlowFireModel(
 
                 repository.updateNote(
                     note.toDataModel(
-                        createdAt = existing.createdAt
+                        createdAt = existing.createdAt,
+                        position = existing.position
                     )
                 )
             }
         }
     }
 
-    fun deleteNote(note: NoteUiModel) {
+    fun updateNotePositions(
+        noteIds: List<String>
+    ) {
+        viewModelScope.launch {
+            databaseMutex.withLock {
+                repository.updateNotePositions(noteIds)
+            }
+        }
+    }
+
+    fun deleteNote(
+        note: NoteUiModel
+    ) {
         viewModelScope.launch {
             databaseMutex.withLock {
                 val existing = repository.getNote(note.id)
@@ -99,7 +118,9 @@ class FlowFireModel(
         }
     }
 
-    private suspend fun deleteExistingNote(note: Note) {
+    private suspend fun deleteExistingNote(
+        note: Note
+    ) {
         repository.deleteNote(note)
 
         _uiState.update {
@@ -144,7 +165,9 @@ class FlowFireModel(
         }
     }
 
-    fun clearDeletedAnimation(id: String) {
+    fun clearDeletedAnimation(
+        id: String
+    ) {
         _uiState.update {
             it.copy(
                 pendingDeletedNotes =
@@ -163,7 +186,9 @@ class FlowFireModel(
         }
     }
 
-    private fun toUiModel(note: Note): NoteUiModel {
+    private fun toUiModel(
+        note: Note
+    ): NoteUiModel {
         return NoteUiModel(
             id = note.id,
             text = note.text
@@ -171,12 +196,14 @@ class FlowFireModel(
     }
 
     private fun NoteUiModel.toDataModel(
-        createdAt: Long = System.currentTimeMillis()
+        createdAt: Long = System.currentTimeMillis(),
+        position: Long = 0L
     ): Note {
         return Note(
             id = id,
             text = text,
-            createdAt = createdAt
+            createdAt = createdAt,
+            position = position
         )
     }
 }
