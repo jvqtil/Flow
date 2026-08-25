@@ -24,13 +24,27 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
-        
+
+      - name: Restore signing key
+        env:
+          FLOW_KEYSTORE: ${{ secrets.FLOW_KEYSTORE }}
+        run: |
+          echo "$FLOW_KEYSTORE" | base64 --decode > flow-release.jks
+
       - name: Build Release APK
-        run: chmod +x ./gradlew && ./gradlew assembleRelease
+        env:
+          FLOW_KEYSTORE: ${{ github.workspace }}/flow-release.jks
+          FLOW_KEYSTORE_PASSWORD: ${{ secrets.FLOW_KEYSTORE_PASSWORD }}
+          FLOW_KEY_ALIAS: ${{ secrets.FLOW_KEY_ALIAS }}
+          FLOW_KEY_PASSWORD: ${{ secrets.FLOW_KEY_PASSWORD }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
 
       - name: Rename APK
         run: |
           APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          echo "$APK"
           mv "$APK" "app/build/outputs/apk/release/flow-${GITHUB_REF_NAME}.apk"
       
       - name: Create GitHub Release
