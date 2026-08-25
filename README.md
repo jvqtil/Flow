@@ -10,6 +10,12 @@ Notes app for Android. Fully native. Just your notes, no bullshit
 - Material UI
 - Dynamic colors on Android 12+
 - Predictive back gesture support (Android 16+)
+- AMOLED background option
+
+## Installation
+<a href="../../releases/latest">
+  <img src="https://img.shields.io/badge/Download%20APK-8B5CF6?style=for-the-badge&logo=android&logoColor=white" alt="Download APK">
+</a>
 
 ## Screenshots
 
