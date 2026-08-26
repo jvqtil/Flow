@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -323,6 +324,10 @@ fun FlowNavHost(
                 mutableStateOf<NoteUiModel?>(null)
             }
 
+            var skipSaveOnDispose by remember {
+                mutableStateOf(false)
+            }
+
             LaunchedEffect(
                 routeNoteId,
                 isNew
@@ -342,19 +347,21 @@ fun FlowNavHost(
                 }
             }
 
-            fun saveAndBack() {
-                val currentNote = note
+            DisposableEffect(Unit) {
+                onDispose {
+                    if (skipSaveOnDispose) return@onDispose
 
-                if (currentNote != null) {
-                    if (isNew) {
-                        flowFireModel.saveNewNote(currentNote)
-                        shouldScrollHomeToTop = true
-                    } else {
-                        flowFireModel.updateNote(currentNote)
+                    val currentNote = note
+
+                    if (currentNote != null) {
+                        if (isNew) {
+                            flowFireModel.saveNewNote(currentNote)
+                            shouldScrollHomeToTop = true
+                        } else {
+                            flowFireModel.updateNote(currentNote)
+                        }
                     }
                 }
-
-                navController.popBackStack()
             }
 
             NoteScreen(
@@ -364,7 +371,7 @@ fun FlowNavHost(
                 editorFont = editorFont,
 
                 onBack = {
-                    saveAndBack()
+                    navController.popBackStack()
                 },
 
                 onTextChange = { text ->
@@ -378,6 +385,8 @@ fun FlowNavHost(
                         navController.popBackStack()
                         return@NoteScreen
                     }
+
+                    skipSaveOnDispose = true
 
                     if (isNew) {
                         navController.popBackStack()
