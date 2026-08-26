@@ -1,18 +1,23 @@
 package dev.jvqtil.flow.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +40,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
+import dev.jvqtil.flow.ui.NoteUiModel
 import dev.jvqtil.flow.ui.components.EditorFont
 import dev.jvqtil.flow.ui.components.UiFont
 import dev.jvqtil.flow.ui.components.fontFamily
@@ -50,13 +57,14 @@ private val NotePrompts = listOf(
 
 @Composable
 fun NoteScreen(
-    text: String,
+    note: NoteUiModel,
     autoFocus: Boolean,
     uiFont: UiFont,
     editorFont: EditorFont,
     onBack: () -> Unit,
     onTextChange: (String) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onToggleTaskNote: () -> Unit
 ) {
     val prompt = remember {
         NotePrompts.random()
@@ -69,7 +77,8 @@ fun NoteScreen(
     val focusManager = LocalFocusManager.current
     val density = LocalDensity.current
 
-    val keyboardVisible = WindowInsets.ime.getBottom(density) > 0
+    val keyboardVisible =
+        WindowInsets.ime.getBottom(density) > 0
 
     var hasFocus by remember {
         mutableStateOf(false)
@@ -82,19 +91,26 @@ fun NoteScreen(
         }
     }
 
-    val cursorVisible = keyboardVisible && hasFocus
+    val cursorVisible =
+        keyboardVisible && hasFocus
 
-    val editorFontFamily = when (editorFont) {
-        EditorFont.UI_FONT -> uiFont.fontFamily()
-        else -> editorFont.fontFamily(uiFont)
-    }
+    val editorFontFamily =
+        when (editorFont) {
+            EditorFont.UI_FONT ->
+                uiFont.fontFamily()
+
+            else ->
+                editorFont.fontFamily(uiFont)
+        }
 
     BasicTextField(
-        value = text,
+        value = note.text,
         onValueChange = onTextChange,
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(
+                MaterialTheme.colorScheme.background
+            )
             .focusRequester(focusRequester)
             .onFocusChanged {
                 hasFocus = it.isFocused
@@ -129,10 +145,57 @@ fun NoteScreen(
                     modifier = Modifier.padding(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector =
+                            Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onBackground
+                        tint =
+                            MaterialTheme.colorScheme.onBackground
                     )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(
+                            top = 11.dp,
+                            end = 52.dp
+                        )
+                        .size(width = 84.dp, height = 42.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .clickable(
+                            onClick = onToggleTaskNote
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SwapHoriz,
+                            contentDescription =
+                                if (note.type == ENTRY_TYPE_TASK) {
+                                    "Convert to note"
+                                } else {
+                                    "Convert to task"
+                                },
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+
+                        Text(
+                            text =
+                                if (note.type == ENTRY_TYPE_TASK) {
+                                    "Task"
+                                } else {
+                                    "Note"
+                                },
+                            color = MaterialTheme.colorScheme.onBackground,
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
                 }
 
                 IconButton(
@@ -146,9 +209,11 @@ fun NoteScreen(
                         .padding(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.DeleteOutline,
+                        imageVector =
+                            Icons.Default.DeleteOutline,
                         contentDescription = "Delete note",
-                        tint = MaterialTheme.colorScheme.onBackground
+                        tint =
+                            MaterialTheme.colorScheme.onBackground
                     )
                 }
 
@@ -162,7 +227,8 @@ fun NoteScreen(
                             bottom = 12.dp
                         )
                 ) {
-                    if (text.isEmpty()) {
+
+                    if (note.text.isEmpty()) {
                         Text(
                             text = prompt,
                             style = MaterialTheme.typography.bodyLarge.copy(

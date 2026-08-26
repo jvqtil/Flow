@@ -63,7 +63,9 @@ fun HomeScreen(
     onOpenNote: (String) -> Unit,
     onDeleteNote: (String) -> Unit,
     onOpenSettings: () -> Unit,
-    onReorderNotes: (List<String>) -> Unit
+    onReorderNotes: (List<String>) -> Unit,
+    onToggleCompleted: (String) -> Unit,
+    onToggleTaskNote: (String) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -316,13 +318,32 @@ fun HomeScreen(
                                         ) {
                                             deletedNotePositions =
                                                 deletedNotePositions + (
-                                                        note.id to localNotes.indexOfFirst {
-                                                            it.id == note.id
-                                                        }
+                                                        note.id to
+                                                                localNotes.indexOfFirst {
+                                                                    it.id == note.id
+                                                                }
                                                         )
 
                                             closeActions()
                                             onDeleteNote(note.id)
+                                        }
+                                    },
+                                    onToggleCompleted = {
+                                        if (
+                                            !isDeleting &&
+                                            !isRestoring &&
+                                            !isDragging
+                                        ) {
+                                            onToggleCompleted(note.id)
+                                        }
+                                    },
+                                    onToggleTaskNote = {
+                                        if (
+                                            !isDeleting &&
+                                            !isRestoring &&
+                                            !isDragging
+                                        ) {
+                                            onToggleTaskNote(note.id)
                                         }
                                     },
                                     onAnimationFinished = {

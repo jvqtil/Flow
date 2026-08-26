@@ -3,6 +3,8 @@ package dev.jvqtil.flow.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
+import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.data.Note
 import dev.jvqtil.flow.data.NoteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -85,8 +87,9 @@ class FlowFireModel(
 
         viewModelScope.launch {
             databaseMutex.withLock {
-                val existing = repository.getNote(normalizedNote.id)
-                    ?: return@withLock
+                val existing =
+                    repository.getNote(normalizedNote.id)
+                        ?: return@withLock
 
                 if (normalizedNote.text.isBlank()) {
                     deleteExistingNote(existing)
@@ -118,8 +121,9 @@ class FlowFireModel(
     ) {
         viewModelScope.launch {
             databaseMutex.withLock {
-                val existing = repository.getNote(note.id)
-                    ?: return@withLock
+                val existing =
+                    repository.getNote(note.id)
+                        ?: return@withLock
 
                 deleteExistingNote(existing)
             }
@@ -134,7 +138,8 @@ class FlowFireModel(
         _uiState.update {
             it.copy(
                 pendingDeletedNotes =
-                    it.pendingDeletedNotes + (note.id to note),
+                    it.pendingDeletedNotes +
+                            (note.id to note),
                 undoNote = note,
                 deletingNoteIds =
                     it.deletingNoteIds + note.id,
@@ -146,8 +151,9 @@ class FlowFireModel(
     fun undoDelete() {
         viewModelScope.launch {
             databaseMutex.withLock {
-                val note = _uiState.value.undoNote
-                    ?: return@withLock
+                val note =
+                    _uiState.value.undoNote
+                        ?: return@withLock
 
                 repository.restoreNote(note)
 
@@ -194,12 +200,67 @@ class FlowFireModel(
         }
     }
 
+    fun toggleCompleted(
+        noteId: String
+    ) {
+        viewModelScope.launch {
+            databaseMutex.withLock {
+                val existing =
+                    repository.getNote(noteId)
+                        ?: return@withLock
+
+                if (existing.type != ENTRY_TYPE_TASK) {
+                    return@withLock
+                }
+
+                repository.updateNote(
+                    existing.copy(
+                        completed = !existing.completed
+                    )
+                )
+            }
+        }
+    }
+
+    fun toggleTaskNote(
+        noteId: String
+    ) {
+        viewModelScope.launch {
+            databaseMutex.withLock {
+                val existing =
+                    repository.getNote(noteId)
+                        ?: return@withLock
+
+                val newType =
+                    if (existing.type == ENTRY_TYPE_TASK) {
+                        ENTRY_TYPE_NOTE
+                    } else {
+                        ENTRY_TYPE_TASK
+                    }
+
+                repository.updateNote(
+                    existing.copy(
+                        type = newType,
+                        completed =
+                            if (newType == ENTRY_TYPE_TASK) {
+                                existing.completed
+                            } else {
+                                false
+                            }
+                    )
+                )
+            }
+        }
+    }
+
     private fun toUiModel(
         note: Note
     ): NoteUiModel {
         return NoteUiModel(
             id = note.id,
-            text = note.text
+            text = note.text,
+            type = note.type,
+            completed = note.completed
         )
     }
 
@@ -211,7 +272,9 @@ class FlowFireModel(
             id = id,
             text = text,
             createdAt = createdAt,
-            position = position
+            position = position,
+            type = type,
+            completed = completed
         )
     }
 }

@@ -5,7 +5,7 @@ import androidx.room3.RoomDatabase
 
 @Database(
     entities = [Note::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class FlowDatabase : RoomDatabase() {

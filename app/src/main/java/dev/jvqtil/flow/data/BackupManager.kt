@@ -7,7 +7,7 @@ import org.json.JSONObject
 
 object BackupManager {
 
-    private const val VERSION = 1
+    private const val VERSION = 2
 
     fun exportNotes(
         context: Context,
@@ -27,6 +27,8 @@ object BackupManager {
             jsonNote.put("text", note.text)
             jsonNote.put("createdAt", note.createdAt)
             jsonNote.put("position", note.position)
+            jsonNote.put("type", note.type)
+            jsonNote.put("completed", note.completed)
 
             notesArray.put(jsonNote)
         }
@@ -69,7 +71,7 @@ object BackupManager {
             -1
         )
 
-        if (version != VERSION) {
+        if (version != VERSION && version != 1) {
             throw IllegalArgumentException(
                 "Unsupported backup version"
             )
@@ -105,7 +107,25 @@ object BackupManager {
                 position = jsonNote.optLong(
                     "position",
                     index.toLong()
-                )
+                ),
+                type =
+                    if (version >= 2) {
+                        jsonNote.optString(
+                            "type",
+                            ENTRY_TYPE_NOTE
+                        )
+                    } else {
+                        ENTRY_TYPE_NOTE
+                    },
+                completed =
+                    if (version >= 2) {
+                        jsonNote.optBoolean(
+                            "completed",
+                            false
+                        )
+                    } else {
+                        false
+                    },
             )
         }
 

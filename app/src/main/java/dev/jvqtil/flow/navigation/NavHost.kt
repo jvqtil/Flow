@@ -50,7 +50,9 @@ fun FlowNavHost(
     val navController = rememberNavController()
 
     val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json")
+        contract = ActivityResultContracts.CreateDocument(
+            "application/json"
+        )
     ) { uri ->
         if (uri != null) {
             scope.launch {
@@ -147,7 +149,9 @@ fun FlowNavHost(
         startDestination = HOME_ROUTE,
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(
+                MaterialTheme.colorScheme.background
+            ),
         enterTransition = {
             slideInHorizontally(
                 initialOffsetX = { it / 8 },
@@ -189,7 +193,8 @@ fun FlowNavHost(
                 onScrollToTopHandled = {
                     shouldScrollHomeToTop = false
                 },
-                pendingDeletedNotes = uiState.pendingDeletedNotes,
+                pendingDeletedNotes =
+                    uiState.pendingDeletedNotes,
                 undoNote = uiState.undoNote,
                 restoringNoteId = uiState.restoringNoteId,
                 deletingNoteIds = uiState.deletingNoteIds,
@@ -232,13 +237,19 @@ fun FlowNavHost(
                         }
                 },
 
+                onOpenSettings = {
+                    navController.navigate(SETTINGS_ROUTE)
+                },
+
                 onReorderNotes = { noteIds ->
                     flowFireModel.updateNotePositions(noteIds)
                 },
 
-                onOpenSettings = {
-                    navController.navigate(SETTINGS_ROUTE)
-                }
+                onToggleCompleted =
+                    flowFireModel::toggleCompleted,
+
+                onToggleTaskNote =
+                    flowFireModel::toggleTaskNote
             )
         }
 
@@ -349,9 +360,12 @@ fun FlowNavHost(
 
             DisposableEffect(Unit) {
                 onDispose {
-                    if (skipSaveOnDispose) return@onDispose
+                    if (skipSaveOnDispose) {
+                        return@onDispose
+                    }
 
-                    val currentNote = note ?: return@onDispose
+                    val currentNote =
+                        note ?: return@onDispose
 
                     if (isNew) {
                         if (currentNote.text.isNotBlank()) {
@@ -364,38 +378,72 @@ fun FlowNavHost(
                 }
             }
 
-            NoteScreen(
-                text = note?.text ?: "",
-                autoFocus = isNew,
-                uiFont = uiFont,
-                editorFont = editorFont,
+            note?.let { currentNote ->
+                NoteScreen(
+                    note = currentNote,
+                    autoFocus = isNew,
+                    uiFont = uiFont,
+                    editorFont = editorFont,
 
-                onBack = {
-                    navController.popBackStack()
-                },
-
-                onTextChange = { text ->
-                    note = note?.copy(text = text)
-                },
-
-                onDelete = {
-                    val currentNote = note
-
-                    if (currentNote == null) {
+                    onBack = {
                         navController.popBackStack()
-                        return@NoteScreen
+                    },
+
+                    onTextChange = { text ->
+                        note =
+                            note?.copy(
+                                text = text
+                            )
+                    },
+
+                    onDelete = {
+                        val current =
+                            note
+
+                        if (current == null) {
+                            navController.popBackStack()
+                            return@NoteScreen
+                        }
+
+                        skipSaveOnDispose = true
+
+                        if (isNew) {
+                            navController.popBackStack()
+                        } else {
+                            flowFireModel.deleteNote(current)
+                            navController.popBackStack()
+                        }
+                    },
+
+                    onToggleTaskNote = {
+                        flowFireModel.toggleTaskNote(
+                            currentNote.id
+                        )
+
+                        note =
+                            note?.copy(
+                                type =
+                                    if (
+                                        currentNote.type ==
+                                        dev.jvqtil.flow.data.ENTRY_TYPE_TASK
+                                    ) {
+                                        dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
+                                    } else {
+                                        dev.jvqtil.flow.data.ENTRY_TYPE_TASK
+                                    },
+                                completed =
+                                    if (
+                                        currentNote.type ==
+                                        dev.jvqtil.flow.data.ENTRY_TYPE_TASK
+                                    ) {
+                                        false
+                                    } else {
+                                        currentNote.completed
+                                    }
+                            )
                     }
-
-                    skipSaveOnDispose = true
-
-                    if (isNew) {
-                        navController.popBackStack()
-                    } else {
-                        flowFireModel.deleteNote(currentNote)
-                        navController.popBackStack()
-                    }
-                }
-            )
+                )
+            }
         }
     }
 }

@@ -2,24 +2,36 @@ package dev.jvqtil.flow.ui.components
 
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,12 +48,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.ui.NoteUiModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -57,6 +71,8 @@ fun NoteCard(
     @SuppressLint("ModifierParameter") dragHandleModifier: Modifier = Modifier,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    onToggleCompleted: () -> Unit,
+    onToggleTaskNote: () -> Unit,
     onAnimationFinished: () -> Unit
 ) {
     val visibleState = remember(note.id) {
@@ -72,15 +88,20 @@ fun NoteCard(
         mutableStateOf<TextLayoutResult?>(null)
     }
 
-    val actionWidthPx =
-        with(density) {
-            64.dp.toPx()
-        }
+    val taskToolbarWidth = 96.dp
+    val actionToolbarWidth = 64.dp
 
-    val offsetX =
-        remember(note.id) {
-            Animatable(0f)
-        }
+    val taskToolbarWidthPx = with(density) {
+        taskToolbarWidth.toPx()
+    }
+
+    val actionToolbarWidthPx = with(density) {
+        actionToolbarWidth.toPx()
+    }
+
+    val offsetX = remember(note.id) {
+        Animatable(0f)
+    }
 
     var lastCloseActionsToken by remember(note.id) {
         mutableFloatStateOf(0f)
@@ -139,7 +160,10 @@ fun NoteCard(
         lastCloseActionsToken =
             closeActionsToken.toFloat()
 
-        offsetX.snapTo(0f)
+        offsetX.animateTo(
+            targetValue = 0f,
+            animationSpec = tween(180)
+        )
     }
 
     val cornerRadius by animateDpAsState(
@@ -151,6 +175,17 @@ fun NoteCard(
             },
         animationSpec = tween(180),
         label = "cornerRadius"
+    )
+
+    val textStartPadding by animateDpAsState(
+        targetValue =
+            if (note.type == ENTRY_TYPE_TASK) {
+                34.dp
+            } else {
+                0.dp
+            },
+        animationSpec = tween(220),
+        label = "textStartPadding"
     )
 
     AnimatedVisibility(
@@ -173,27 +208,94 @@ fun NoteCard(
         Box(
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (offsetX.value < -0.5f) {
-                IconButton(
-                    onClick = {
-                        scope.launch {
-                            offsetX.animateTo(
-                                targetValue = 0f,
-                                animationSpec = tween(160)
+            Box(
+                modifier = Modifier.matchParentSize()
+            ) {
+                if (offsetX.value > 0.5f) {
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                onToggleTaskNote()
+
+                                offsetX.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = tween(220)
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .width(taskToolbarWidth)
+                    ) {
+                        Row(
+                            verticalAlignment =
+                                Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector =
+                                    Icons.Default.SwapHoriz,
+                                contentDescription =
+                                    if (
+                                        note.type ==
+                                        ENTRY_TYPE_TASK
+                                    ) {
+                                        "Convert to note"
+                                    } else {
+                                        "Convert to task"
+                                    },
+                                tint =
+                                    MaterialTheme.colorScheme.primary
                             )
 
-                            onDelete()
+                            Spacer(
+                                modifier =
+                                    Modifier.width(4.dp)
+                            )
+
+                            Text(
+                                text =
+                                    if (
+                                        note.type ==
+                                        ENTRY_TYPE_TASK
+                                    ) {
+                                        "Note"
+                                    } else {
+                                        "Task"
+                                    },
+                                color =
+                                    MaterialTheme.colorScheme.primary,
+                                style =
+                                    MaterialTheme.typography.labelLarge
+                            )
                         }
-                    },
-                    modifier = Modifier.align(
-                        Alignment.CenterEnd
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                    }
+                }
+
+                if (offsetX.value < -0.5f) {
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                offsetX.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = tween(180)
+                                )
+
+                                onDelete()
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .size(actionToolbarWidth)
+                    ) {
+                        Icon(
+                            imageVector =
+                                Icons.Default.Delete,
+                            contentDescription =
+                                "Delete",
+                            tint =
+                                MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
 
@@ -207,10 +309,7 @@ fun NoteCard(
                         )
                     }
                     .background(
-                        color =
-                            MaterialTheme
-                                .colorScheme
-                                .surfaceContainer,
+                        color = surfaceColor,
                         shape =
                             RoundedCornerShape(
                                 cornerRadius
@@ -219,39 +318,59 @@ fun NoteCard(
                     .then(dragHandleModifier)
                     .pointerInput(note.id) {
                         detectHorizontalDragGestures(
-                            onHorizontalDrag = { _,
-                                                 dragAmount ->
-                                if (isDeleting || isDragging) {
+                            onHorizontalDrag = { _, dragAmount ->
+
+                                if (
+                                    isDeleting ||
+                                    isDragging
+                                ) {
                                     return@detectHorizontalDragGestures
                                 }
 
                                 scope.launch {
-                                    offsetX.snapTo(
+                                    val newOffset =
                                         (
                                                 offsetX.value +
                                                         dragAmount
                                                 ).coerceIn(
-                                                -actionWidthPx,
-                                                0f
+                                                -actionToolbarWidthPx,
+                                                taskToolbarWidthPx
                                             )
+
+                                    offsetX.snapTo(
+                                        newOffset
                                     )
                                 }
                             },
                             onDragEnd = {
                                 scope.launch {
+                                    val taskToolbarThreshold =
+                                        taskToolbarWidthPx / 2f
+
+                                    val actionToolbarThreshold =
+                                        actionToolbarWidthPx / 2f
+
                                     val target =
-                                        if (
+                                        when {
+                                            offsetX.value >=
+                                                    taskToolbarThreshold -> {
+                                                taskToolbarWidthPx
+                                            }
+
                                             offsetX.value <=
-                                            -actionWidthPx / 2f
-                                        ) {
-                                            -actionWidthPx
-                                        } else {
-                                            0f
+                                                    -actionToolbarThreshold -> {
+                                                -actionToolbarWidthPx
+                                            }
+
+                                            else -> {
+                                                0f
+                                            }
                                         }
 
                                     offsetX.animateTo(
                                         targetValue = target,
-                                        animationSpec = tween(220)
+                                        animationSpec =
+                                            tween(220)
                                     )
                                 }
                             },
@@ -259,18 +378,23 @@ fun NoteCard(
                                 scope.launch {
                                     offsetX.animateTo(
                                         targetValue = 0f,
-                                        animationSpec = tween(220)
+                                        animationSpec =
+                                            tween(220)
                                     )
                                 }
                             }
                         )
                     }
                     .clickable {
-                        if (offsetX.value < -1f) {
+                        if (
+                            offsetX.value < -1f ||
+                            offsetX.value > 1f
+                        ) {
                             scope.launch {
                                 offsetX.animateTo(
                                     targetValue = 0f,
-                                    animationSpec = tween(220)
+                                    animationSpec =
+                                        tween(220)
                                 )
                             }
                         } else {
@@ -279,23 +403,65 @@ fun NoteCard(
                     }
                     .padding(18.dp)
             ) {
+                AnimatedVisibility(
+                    visible =
+                        note.type == ENTRY_TYPE_TASK,
+                    enter =
+                        fadeIn(
+                            animationSpec = tween(280)
+                        ) + scaleIn(
+                            initialScale = 0.80f,
+                            animationSpec = tween(320)
+                        ),
+                    exit =
+                        fadeOut(
+                            animationSpec = tween(240)
+                        ) + scaleOut(
+                            targetScale = 0.80f,
+                            animationSpec = tween(280)
+                        ),
+                    modifier =
+                        Modifier.align(
+                            Alignment.CenterStart
+                        )
+                ) {
+                    TaskCheckbox(
+                        checked = note.completed,
+                        onClick = onToggleCompleted
+                    )
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(
+                            start = textStartPadding
+                        )
                         .drawWithContent {
                             drawContent()
 
-                            if (textLayoutResult?.hasVisualOverflow == true) {
+                            if (
+                                textLayoutResult
+                                    ?.hasVisualOverflow == true
+                            ) {
                                 drawRect(
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(
-                                            surfaceColor.copy(alpha = 0f),
-                                            surfaceColor.copy(alpha = 0.75f),
-                                            surfaceColor
-                                        ),
-                                        startY = size.height * 0.90f,
-                                        endY = size.height
-                                    )
+                                    brush =
+                                        Brush.verticalGradient(
+                                            colors =
+                                                listOf(
+                                                    surfaceColor.copy(
+                                                        alpha = 0f
+                                                    ),
+                                                    surfaceColor.copy(
+                                                        alpha = 0.75f
+                                                    ),
+                                                    surfaceColor
+                                                ),
+                                            startY =
+                                                size.height * 0.90f,
+                                            endY =
+                                                size.height
+                                        )
                                 )
                             }
                         }
@@ -303,15 +469,96 @@ fun NoteCard(
                     Text(
                         text = note.text,
                         maxLines = previewLines,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        style =
+                            MaterialTheme
+                                .typography
+                                .bodyLarge,
+                        fontWeight =
+                            FontWeight.Medium,
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .onSurface,
                         onTextLayout = {
                             textLayoutResult = it
                         }
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun TaskCheckbox(
+    checked: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember {
+        MutableInteractionSource()
+    }
+
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1f,
+        animationSpec = tween(
+            durationMillis = if (isPressed) 90 else 140
+        ),
+        label = "pressScale"
+    )
+
+    val backgroundColor by animateColorAsState(
+        targetValue =
+            if (checked) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest
+            },
+        animationSpec = tween(160),
+        label = "backgroundColor"
+    )
+
+    Box(
+        modifier = modifier
+            .size(24.dp)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+            .background(
+                color = backgroundColor,
+                shape = RoundedCornerShape(5.dp)
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        AnimatedVisibility(
+            visible = checked,
+            enter =
+                fadeIn(tween(100)) +
+                        scaleIn(
+                            initialScale = 0.5f,
+                            animationSpec = tween(140)
+                        ),
+            exit =
+                fadeOut(tween(80)) +
+                        scaleOut(
+                            targetScale = 0.5f,
+                            animationSpec = tween(100)
+                        )
+        ) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = "Completed",
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }
