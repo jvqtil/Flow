@@ -8,7 +8,7 @@ const val ENTRY_TYPE_NOTE = "note"
 const val ENTRY_TYPE_TASK = "task"
 
 @Entity(tableName = "notes")
-data class Note(
+data class Entry(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
     val text: String,

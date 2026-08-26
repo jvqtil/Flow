@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
-import dev.jvqtil.flow.data.Note
-import dev.jvqtil.flow.data.NoteRepository
+import dev.jvqtil.flow.data.Entry
+import dev.jvqtil.flow.data.FlowRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +17,7 @@ import kotlinx.coroutines.sync.withLock
 import java.util.UUID
 
 class FlowFireModel(
-    private val repository: NoteRepository
+    private val repository: FlowRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FlowUiState())
@@ -26,78 +26,78 @@ class FlowFireModel(
     private val databaseMutex = Mutex()
 
     init {
-        observeNotes()
+        observeEntries()
     }
 
-    private fun observeNotes() {
+    private fun observeEntries() {
         viewModelScope.launch {
-            repository.observeNotes().collect { notes ->
+            repository.observeEntries().collect { entries ->
                 _uiState.update {
                     it.copy(
-                        notes = notes.map(::toUiModel)
+                        entries = entries.map(::toUiModel)
                     )
                 }
             }
         }
     }
 
-    suspend fun getNote(
+    suspend fun getEntry(
         id: String
-    ): NoteUiModel? {
+    ): EntryUiModel? {
         return databaseMutex.withLock {
             repository
-                .getNote(id)
+                .getEntry(id)
                 ?.let(::toUiModel)
         }
     }
 
-    fun createNote(): NoteUiModel {
-        return NoteUiModel(
+    fun createEntry(): EntryUiModel {
+        return EntryUiModel(
             id = UUID.randomUUID().toString(),
             text = ""
         )
     }
 
-    fun saveNewNote(
-        note: NoteUiModel
+    fun saveNewEntry(
+        entry: EntryUiModel
     ) {
-        val normalizedNote = note.copy(
-            text = trimEmptyLines(note.text)
+        val normalizedEntry = entry.copy(
+            text = trimEmptyLines(entry.text)
         )
 
-        if (normalizedNote.text.isBlank()) {
+        if (normalizedEntry.text.isBlank()) {
             return
         }
 
         viewModelScope.launch {
             databaseMutex.withLock {
-                repository.insertNoteAtTop(
-                    normalizedNote.toDataModel()
+                repository.insertAtTop(
+                    normalizedEntry.toDataModel()
                 )
             }
         }
     }
 
-    fun updateNote(
-        note: NoteUiModel
+    fun updateEntry(
+        entry: EntryUiModel
     ) {
-        val normalizedNote = note.copy(
-            text = trimEmptyLines(note.text)
+        val normalizedEntry = entry.copy(
+            text = trimEmptyLines(entry.text)
         )
 
         viewModelScope.launch {
             databaseMutex.withLock {
                 val existing =
-                    repository.getNote(normalizedNote.id)
+                    repository.getEntry(normalizedEntry.id)
                         ?: return@withLock
 
-                if (normalizedNote.text.isBlank()) {
-                    deleteExistingNote(existing)
+                if (normalizedEntry.text.isBlank()) {
+                    deleteExistingEntry(existing)
                     return@withLock
                 }
 
-                repository.updateNote(
-                    normalizedNote.toDataModel(
+                repository.updateEntry(
+                    normalizedEntry.toDataModel(
                         createdAt = existing.createdAt,
                         position = existing.position
                     )
@@ -106,44 +106,44 @@ class FlowFireModel(
         }
     }
 
-    fun updateNotePositions(
-        noteIds: List<String>
+    fun updateEntriesPositions(
+        entriesIds: List<String>
     ) {
         viewModelScope.launch {
             databaseMutex.withLock {
-                repository.updateNotePositions(noteIds)
+                repository.updateEntriesPositions(entriesIds)
             }
         }
     }
 
-    fun deleteNote(
-        note: NoteUiModel
+    fun deleteEntry(
+        entry: EntryUiModel
     ) {
         viewModelScope.launch {
             databaseMutex.withLock {
                 val existing =
-                    repository.getNote(note.id)
+                    repository.getEntry(entry.id)
                         ?: return@withLock
 
-                deleteExistingNote(existing)
+                deleteExistingEntry(existing)
             }
         }
     }
 
-    private suspend fun deleteExistingNote(
-        note: Note
+    private suspend fun deleteExistingEntry(
+        entry: Entry
     ) {
-        repository.deleteNote(note)
+        repository.deleteEntry(entry)
 
         _uiState.update {
             it.copy(
-                pendingDeletedNotes =
-                    it.pendingDeletedNotes +
-                            (note.id to note),
-                undoNote = note,
-                deletingNoteIds =
-                    it.deletingNoteIds + note.id,
-                restoringNoteId = null
+                pendingDeletedEntries =
+                    it.pendingDeletedEntries +
+                            (entry.id to entry),
+                undoEntry = entry,
+                deletingEntriesIds =
+                    it.deletingEntriesIds + entry.id,
+                restoringEntryId = null
             )
         }
     }
@@ -151,30 +151,30 @@ class FlowFireModel(
     fun undoDelete() {
         viewModelScope.launch {
             databaseMutex.withLock {
-                val note =
-                    _uiState.value.undoNote
+                val entry =
+                    _uiState.value.undoEntry
                         ?: return@withLock
 
-                repository.restoreNote(note)
+                repository.restoreEntry(entry)
 
                 _uiState.update {
                     it.copy(
-                        pendingDeletedNotes =
-                            it.pendingDeletedNotes - note.id,
-                        undoNote = null,
-                        deletingNoteIds =
-                            it.deletingNoteIds - note.id,
-                        restoringNoteId = note.id
+                        pendingDeletedEntries =
+                            it.pendingDeletedEntries - entry.id,
+                        undoEntry = null,
+                        deletingEntriesIds =
+                            it.deletingEntriesIds - entry.id,
+                        restoringEntryId = entry.id
                     )
                 }
             }
         }
     }
 
-    fun clearDeletedNote() {
+    fun clearDeletedEntry() {
         _uiState.update {
             it.copy(
-                undoNote = null
+                undoEntry = null
             )
         }
     }
@@ -184,36 +184,36 @@ class FlowFireModel(
     ) {
         _uiState.update {
             it.copy(
-                pendingDeletedNotes =
-                    it.pendingDeletedNotes - id,
-                deletingNoteIds =
-                    it.deletingNoteIds - id
+                pendingDeletedEntries =
+                    it.pendingDeletedEntries - id,
+                deletingEntriesIds =
+                    it.deletingEntriesIds - id
             )
         }
     }
 
-    fun clearRestoringNote() {
+    fun clearRestoringEntry() {
         _uiState.update {
             it.copy(
-                restoringNoteId = null
+                restoringEntryId = null
             )
         }
     }
 
     fun toggleCompleted(
-        noteId: String
+        entryId: String
     ) {
         viewModelScope.launch {
             databaseMutex.withLock {
                 val existing =
-                    repository.getNote(noteId)
+                    repository.getEntry(entryId)
                         ?: return@withLock
 
                 if (existing.type != ENTRY_TYPE_TASK) {
                     return@withLock
                 }
 
-                repository.updateNote(
+                repository.updateEntry(
                     existing.copy(
                         completed = !existing.completed
                     )
@@ -223,12 +223,12 @@ class FlowFireModel(
     }
 
     fun toggleTaskNote(
-        noteId: String
+        entryId: String
     ) {
         viewModelScope.launch {
             databaseMutex.withLock {
                 val existing =
-                    repository.getNote(noteId)
+                    repository.getEntry(entryId)
                         ?: return@withLock
 
                 val newType =
@@ -238,7 +238,7 @@ class FlowFireModel(
                         ENTRY_TYPE_TASK
                     }
 
-                repository.updateNote(
+                repository.updateEntry(
                     existing.copy(
                         type = newType,
                         completed =
@@ -254,21 +254,21 @@ class FlowFireModel(
     }
 
     private fun toUiModel(
-        note: Note
-    ): NoteUiModel {
-        return NoteUiModel(
-            id = note.id,
-            text = note.text,
-            type = note.type,
-            completed = note.completed
+        entry: Entry
+    ): EntryUiModel {
+        return EntryUiModel(
+            id = entry.id,
+            text = entry.text,
+            type = entry.type,
+            completed = entry.completed
         )
     }
 
-    private fun NoteUiModel.toDataModel(
+    private fun EntryUiModel.toDataModel(
         createdAt: Long = System.currentTimeMillis(),
         position: Long = 0L
-    ): Note {
-        return Note(
+    ): Entry {
+        return Entry(
             id = id,
             text = text,
             createdAt = createdAt,
@@ -280,7 +280,7 @@ class FlowFireModel(
 }
 
 class FlowFireModelFactory(
-    private val repository: NoteRepository
+    private val repository: FlowRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")

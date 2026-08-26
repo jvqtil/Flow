@@ -41,14 +41,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
-import dev.jvqtil.flow.ui.NoteUiModel
+import dev.jvqtil.flow.ui.EntryUiModel
 import dev.jvqtil.flow.ui.components.EditorFont
 import dev.jvqtil.flow.ui.components.UiFont
 import dev.jvqtil.flow.ui.components.fontFamily
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
-private val NotePrompts = listOf(
+private val Placeholders = listOf(
     "Any ideas?",
     "Another B2B SAAS idea?",
     "Claude didn't help i see..",
@@ -56,8 +56,8 @@ private val NotePrompts = listOf(
 )
 
 @Composable
-fun NoteScreen(
-    note: NoteUiModel,
+fun EditorScreen(
+    entry: EntryUiModel,
     autoFocus: Boolean,
     uiFont: UiFont,
     editorFont: EditorFont,
@@ -67,7 +67,7 @@ fun NoteScreen(
     onToggleTaskNote: () -> Unit
 ) {
     val prompt = remember {
-        NotePrompts.random()
+        Placeholders.random()
     }
 
     val focusRequester = remember {
@@ -104,7 +104,7 @@ fun NoteScreen(
         }
 
     BasicTextField(
-        value = note.text,
+        value = entry.text,
         onValueChange = onTextChange,
         modifier = Modifier
             .fillMaxSize()
@@ -176,7 +176,7 @@ fun NoteScreen(
                         Icon(
                             imageVector = Icons.Default.SwapHoriz,
                             contentDescription =
-                                if (note.type == ENTRY_TYPE_TASK) {
+                                if (entry.type == ENTRY_TYPE_TASK) {
                                     "Convert to note"
                                 } else {
                                     "Convert to task"
@@ -186,7 +186,7 @@ fun NoteScreen(
 
                         Text(
                             text =
-                                if (note.type == ENTRY_TYPE_TASK) {
+                                if (entry.type == ENTRY_TYPE_TASK) {
                                     "Task"
                                 } else {
                                     "Note"
@@ -228,7 +228,7 @@ fun NoteScreen(
                         )
                 ) {
 
-                    if (note.text.isEmpty()) {
+                    if (entry.text.isEmpty()) {
                         Text(
                             text = prompt,
                             style = MaterialTheme.typography.bodyLarge.copy(

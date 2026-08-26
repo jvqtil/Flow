@@ -30,20 +30,20 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.jvqtil.flow.data.AppPreferences
 import dev.jvqtil.flow.data.BackupManager
-import dev.jvqtil.flow.data.NoteRepository
+import dev.jvqtil.flow.data.FlowRepository
+import dev.jvqtil.flow.ui.EntryUiModel
 import dev.jvqtil.flow.ui.FlowFireModel
 import dev.jvqtil.flow.ui.FlowFireModelFactory
-import dev.jvqtil.flow.ui.NoteUiModel
 import dev.jvqtil.flow.ui.components.EditorFont
 import dev.jvqtil.flow.ui.components.UiFont
+import dev.jvqtil.flow.ui.screens.EditorScreen
 import dev.jvqtil.flow.ui.screens.HomeScreen
-import dev.jvqtil.flow.ui.screens.NoteScreen
 import dev.jvqtil.flow.ui.screens.SettingsScreen
 import kotlinx.coroutines.launch
 
 @Composable
 fun FlowNavHost(
-    repository: NoteRepository
+    repository: FlowRepository
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -57,12 +57,12 @@ fun FlowNavHost(
         if (uri != null) {
             scope.launch {
                 runCatching {
-                    val notes = repository.getAllNotes()
+                    val notes = repository.getAllEntries()
 
                     BackupManager.exportNotes(
                         context = context,
                         uri = uri,
-                        notes = notes
+                        entries = notes
                     )
                 }.onSuccess {
                     Toast.makeText(
@@ -92,7 +92,7 @@ fun FlowNavHost(
                         uri = uri
                     )
 
-                    repository.restoreNotes(notes)
+                    repository.restoreEntry(notes)
                 }.onSuccess {
                     Toast.makeText(
                         context,
@@ -187,53 +187,53 @@ fun FlowNavHost(
     ) {
         composable(HOME_ROUTE) {
             HomeScreen(
-                notes = uiState.notes,
+                entries = uiState.entries,
                 previewLines = previewLines,
                 shouldScrollToTop = shouldScrollHomeToTop,
                 onScrollToTopHandled = {
                     shouldScrollHomeToTop = false
                 },
-                pendingDeletedNotes =
-                    uiState.pendingDeletedNotes,
-                undoNote = uiState.undoNote,
-                restoringNoteId = uiState.restoringNoteId,
-                deletingNoteIds = uiState.deletingNoteIds,
+                pendingDeletedEntries =
+                    uiState.pendingDeletedEntries,
+                undoEntry = uiState.undoEntry,
+                restoringEntryId = uiState.restoringEntryId,
+                deletingEntriesIds = uiState.deletingEntriesIds,
 
                 onUndo = {
                     flowFireModel.undoDelete()
                 },
 
                 onUndoTimeout = {
-                    flowFireModel.clearDeletedNote()
+                    flowFireModel.clearDeletedEntry()
                 },
 
                 onAnimationFinished = { id ->
-                    if (uiState.deletingNoteIds.contains(id)) {
+                    if (uiState.deletingEntriesIds.contains(id)) {
                         flowFireModel.clearDeletedAnimation(id)
                     }
 
-                    if (uiState.restoringNoteId == id) {
-                        flowFireModel.clearRestoringNote()
+                    if (uiState.restoringEntryId == id) {
+                        flowFireModel.clearRestoringEntry()
                     }
                 },
 
-                onAddNote = {
+                onNewEntry = {
                     navController.navigate(
-                        "$NOTE_ROUTE/new?new=true"
+                        "$EDITOR_ROUTE/new?new=true"
                     )
                 },
 
-                onOpenNote = { id ->
+                onOpenEntry = { id ->
                     navController.navigate(
-                        "$NOTE_ROUTE/$id?new=false"
+                        "$EDITOR_ROUTE/$id?new=false"
                     )
                 },
 
-                onDeleteNote = { id ->
-                    uiState.notes
+                onDeleteEntry = { id ->
+                    uiState.entries
                         .firstOrNull { it.id == id }
                         ?.let { note ->
-                            flowFireModel.deleteNote(note)
+                            flowFireModel.deleteEntry(note)
                         }
                 },
 
@@ -241,8 +241,8 @@ fun FlowNavHost(
                     navController.navigate(SETTINGS_ROUTE)
                 },
 
-                onReorderNotes = { noteIds ->
-                    flowFireModel.updateNotePositions(noteIds)
+                onReorderEntries = { noteIds ->
+                    flowFireModel.updateEntriesPositions(noteIds)
                 },
 
                 onToggleCompleted =
@@ -310,9 +310,9 @@ fun FlowNavHost(
         }
 
         composable(
-            route = "$NOTE_ROUTE/{$NOTE_ID}?new={new}",
+            route = "$EDITOR_ROUTE/{$ENTRY_ID}?new={new}",
             arguments = listOf(
-                navArgument(NOTE_ID) {
+                navArgument(ENTRY_ID) {
                     type = NavType.StringType
                 },
                 navArgument("new") {
@@ -322,17 +322,17 @@ fun FlowNavHost(
             )
         ) { entry ->
 
-            val routeNoteId =
-                entry.arguments?.getString(NOTE_ID)
+            val routeEntryId =
+                entry.arguments?.getString(ENTRY_ID)
 
             val isNew =
                 entry.arguments?.getBoolean("new") ?: false
 
-            var note by remember(
-                routeNoteId,
+            var currentEntry by remember(
+                routeEntryId,
                 isNew
             ) {
-                mutableStateOf<NoteUiModel?>(null)
+                mutableStateOf<EntryUiModel?>(null)
             }
 
             var skipSaveOnDispose by remember {
@@ -340,16 +340,16 @@ fun FlowNavHost(
             }
 
             LaunchedEffect(
-                routeNoteId,
+                routeEntryId,
                 isNew
             ) {
-                note = when {
+                currentEntry = when {
                     isNew -> {
-                        flowFireModel.createNote()
+                        flowFireModel.createEntry()
                     }
 
-                    !routeNoteId.isNullOrBlank() -> {
-                        flowFireModel.getNote(routeNoteId)
+                    !routeEntryId.isNullOrBlank() -> {
+                        flowFireModel.getEntry(routeEntryId)
                     }
 
                     else -> {
@@ -364,23 +364,23 @@ fun FlowNavHost(
                         return@onDispose
                     }
 
-                    val currentNote =
-                        note ?: return@onDispose
+                    val entryToSave =
+                        currentEntry ?: return@onDispose
 
                     if (isNew) {
-                        if (currentNote.text.isNotBlank()) {
-                            flowFireModel.saveNewNote(currentNote)
+                        if (entryToSave.text.isNotBlank()) {
+                            flowFireModel.saveNewEntry(entryToSave)
                             shouldScrollHomeToTop = true
                         }
                     } else {
-                        flowFireModel.updateNote(currentNote)
+                        flowFireModel.updateEntry(entryToSave)
                     }
                 }
             }
 
-            note?.let { currentNote ->
-                NoteScreen(
-                    note = currentNote,
+            currentEntry?.let { entry ->
+                EditorScreen(
+                    entry = entry,
                     autoFocus = isNew,
                     uiFont = uiFont,
                     editorFont = editorFont,
@@ -390,19 +390,19 @@ fun FlowNavHost(
                     },
 
                     onTextChange = { text ->
-                        note =
-                            note?.copy(
+                        currentEntry =
+                            currentEntry?.copy(
                                 text = text
                             )
                     },
 
                     onDelete = {
-                        val current =
-                            note
+                        val entryToDelete =
+                            currentEntry
 
-                        if (current == null) {
+                        if (entryToDelete == null) {
                             navController.popBackStack()
-                            return@NoteScreen
+                            return@EditorScreen
                         }
 
                         skipSaveOnDispose = true
@@ -410,21 +410,21 @@ fun FlowNavHost(
                         if (isNew) {
                             navController.popBackStack()
                         } else {
-                            flowFireModel.deleteNote(current)
+                            flowFireModel.deleteEntry(entryToDelete)
                             navController.popBackStack()
                         }
                     },
 
                     onToggleTaskNote = {
                         flowFireModel.toggleTaskNote(
-                            currentNote.id
+                            entry.id
                         )
 
-                        note =
-                            note?.copy(
+                        currentEntry =
+                            currentEntry?.copy(
                                 type =
                                     if (
-                                        currentNote.type ==
+                                        entry.type ==
                                         dev.jvqtil.flow.data.ENTRY_TYPE_TASK
                                     ) {
                                         dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
@@ -433,12 +433,12 @@ fun FlowNavHost(
                                     },
                                 completed =
                                     if (
-                                        currentNote.type ==
+                                        entry.type ==
                                         dev.jvqtil.flow.data.ENTRY_TYPE_TASK
                                     ) {
                                         false
                                     } else {
-                                        currentNote.completed
+                                        entry.completed
                                     }
                             )
                     }

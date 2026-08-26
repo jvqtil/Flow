@@ -36,10 +36,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import dev.jvqtil.flow.data.Note
-import dev.jvqtil.flow.ui.NoteUiModel
+import dev.jvqtil.flow.data.Entry
+import dev.jvqtil.flow.ui.EntryUiModel
 import dev.jvqtil.flow.ui.components.AddButton
-import dev.jvqtil.flow.ui.components.NoteCard
+import dev.jvqtil.flow.ui.components.EntryCard
 import dev.jvqtil.flow.ui.components.UndoPopup
 import kotlinx.coroutines.delay
 import sh.calvin.reorderable.ReorderableItem
@@ -48,22 +48,22 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun HomeScreen(
-    notes: List<NoteUiModel>,
+    entries: List<EntryUiModel>,
     previewLines: Int,
     shouldScrollToTop: Boolean,
     onScrollToTopHandled: () -> Unit,
-    pendingDeletedNotes: Map<String, Note>,
-    undoNote: Note?,
-    restoringNoteId: String?,
-    deletingNoteIds: Set<String>,
+    pendingDeletedEntries: Map<String, Entry>,
+    undoEntry: Entry?,
+    restoringEntryId: String?,
+    deletingEntriesIds: Set<String>,
     onUndo: () -> Unit,
     onUndoTimeout: () -> Unit,
     onAnimationFinished: (String) -> Unit,
-    onAddNote: () -> Unit,
-    onOpenNote: (String) -> Unit,
-    onDeleteNote: (String) -> Unit,
+    onNewEntry: () -> Unit,
+    onOpenEntry: (String) -> Unit,
+    onDeleteEntry: (String) -> Unit,
     onOpenSettings: () -> Unit,
-    onReorderNotes: (List<String>) -> Unit,
+    onReorderEntries: (List<String>) -> Unit,
     onToggleCompleted: (String) -> Unit,
     onToggleTaskNote: (String) -> Unit
 ) {
@@ -81,20 +81,20 @@ fun HomeScreen(
         onScrollToTopHandled()
     }
 
-    var localNotes by remember {
-        mutableStateOf(notes)
+    var localEntries by remember {
+        mutableStateOf(entries)
     }
 
     var closeActionsToken by remember {
         mutableIntStateOf(0)
     }
 
-    var deletedNotePositions by remember {
+    var deletedEntriesPositions by remember {
         mutableStateOf<Map<String, Int>>(emptyMap())
     }
 
-    LaunchedEffect(notes) {
-        localNotes = notes
+    LaunchedEffect(entries) {
+        localEntries = entries
     }
 
     fun closeActions() {
@@ -109,12 +109,12 @@ fun HomeScreen(
             val toId = to.key as String
 
             val fromIndex =
-                localNotes.indexOfFirst {
+                localEntries.indexOfFirst {
                     it.id == fromId
                 }
 
             val toIndex =
-                localNotes.indexOfFirst {
+                localEntries.indexOfFirst {
                     it.id == toId
                 }
 
@@ -123,8 +123,8 @@ fun HomeScreen(
                 toIndex >= 0 &&
                 fromIndex != toIndex
             ) {
-                localNotes =
-                    localNotes.toMutableList().apply {
+                localEntries =
+                    localEntries.toMutableList().apply {
                         add(
                             toIndex,
                             removeAt(fromIndex)
@@ -133,19 +133,19 @@ fun HomeScreen(
             }
         }
 
-    val visibleNotes =
+    val visibleEntries =
         buildList {
-            addAll(localNotes)
+            addAll(localEntries)
 
-            pendingDeletedNotes.values.forEach { deleted ->
+            pendingDeletedEntries.values.forEach { deleted ->
                 if (none { it.id == deleted.id }) {
                     val position =
-                        deletedNotePositions[deleted.id]
+                        deletedEntriesPositions[deleted.id]
                             ?: size
 
                     add(
                         position.coerceIn(0, size),
-                        NoteUiModel(
+                        EntryUiModel(
                             id = deleted.id,
                             text = deleted.text
                         )
@@ -155,23 +155,23 @@ fun HomeScreen(
         }
 
     LaunchedEffect(
-        localNotes,
-        notes,
-        deletingNoteIds
+        localEntries,
+        entries,
+        deletingEntriesIds
     ) {
-        if (deletingNoteIds.isNotEmpty()) {
+        if (deletingEntriesIds.isNotEmpty()) {
             return@LaunchedEffect
         }
 
-        if (localNotes.map { it.id } != notes.map { it.id }) {
+        if (localEntries.map { it.id } != entries.map { it.id }) {
             delay(350.milliseconds)
 
             if (
-                deletingNoteIds.isEmpty() &&
-                localNotes.map { it.id } != notes.map { it.id }
+                deletingEntriesIds.isEmpty() &&
+                localEntries.map { it.id } != entries.map { it.id }
             ) {
-                onReorderNotes(
-                    localNotes.map { it.id }
+                onReorderEntries(
+                    localEntries.map { it.id }
                 )
             }
         }
@@ -214,7 +214,7 @@ fun HomeScreen(
             )
         }
 
-        if (visibleNotes.isEmpty()) {
+        if (visibleEntries.isEmpty()) {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -245,15 +245,15 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(
-                        items = visibleNotes,
+                        items = visibleEntries,
                         key = { it.id }
-                    ) { note ->
+                    ) { entry ->
 
                         val isDeleting =
-                            note.id in deletingNoteIds
+                            entry.id in deletingEntriesIds
 
                         val isRestoring =
-                            note.id == restoringNoteId
+                            entry.id == restoringEntryId
 
                         val canReorder =
                             !isDeleting &&
@@ -261,7 +261,7 @@ fun HomeScreen(
 
                         ReorderableItem(
                             state = reorderableState,
-                            key = note.id,
+                            key = entry.id,
                             enabled = canReorder
                         ) { isDragging ->
                             val scale by androidx.compose.animation.core.animateFloatAsState(
@@ -289,8 +289,8 @@ fun HomeScreen(
                                         scaleY = scale
                                     }
                             ) {
-                                NoteCard(
-                                    note = note,
+                                EntryCard(
+                                    entry = entry,
                                     previewLines = previewLines,
                                     shouldAnimate =
                                         isDeleting || isRestoring,
@@ -307,7 +307,7 @@ fun HomeScreen(
                                             !isDragging
                                         ) {
                                             closeActions()
-                                            onOpenNote(note.id)
+                                            onOpenEntry(entry.id)
                                         }
                                     },
                                     onDelete = {
@@ -316,16 +316,16 @@ fun HomeScreen(
                                             !isRestoring &&
                                             !isDragging
                                         ) {
-                                            deletedNotePositions =
-                                                deletedNotePositions + (
-                                                        note.id to
-                                                                localNotes.indexOfFirst {
-                                                                    it.id == note.id
+                                            deletedEntriesPositions =
+                                                deletedEntriesPositions + (
+                                                        entry.id to
+                                                                localEntries.indexOfFirst {
+                                                                    it.id == entry.id
                                                                 }
                                                         )
 
                                             closeActions()
-                                            onDeleteNote(note.id)
+                                            onDeleteEntry(entry.id)
                                         }
                                     },
                                     onToggleCompleted = {
@@ -334,7 +334,7 @@ fun HomeScreen(
                                             !isRestoring &&
                                             !isDragging
                                         ) {
-                                            onToggleCompleted(note.id)
+                                            onToggleCompleted(entry.id)
                                         }
                                     },
                                     onToggleTaskNote = {
@@ -343,14 +343,14 @@ fun HomeScreen(
                                             !isRestoring &&
                                             !isDragging
                                         ) {
-                                            onToggleTaskNote(note.id)
+                                            onToggleTaskNote(entry.id)
                                         }
                                     },
                                     onAnimationFinished = {
-                                        deletedNotePositions =
-                                            deletedNotePositions - note.id
+                                        deletedEntriesPositions =
+                                            deletedEntriesPositions - entry.id
 
-                                        onAnimationFinished(note.id)
+                                        onAnimationFinished(entry.id)
                                     }
                                 )
                             }
@@ -368,13 +368,13 @@ fun HomeScreen(
             AddButton(
                 onClick = {
                     closeActions()
-                    onAddNote()
+                    onNewEntry()
                 }
             )
         }
 
         AnimatedVisibility(
-            visible = undoNote != null,
+            visible = undoEntry != null,
             modifier = Modifier.fillMaxSize(),
             enter =
                 slideInVertically(
@@ -391,9 +391,9 @@ fun HomeScreen(
                     animationSpec = tween(100)
                 )
         ) {
-            undoNote?.let { note ->
+            undoEntry?.let { entry ->
                 UndoPopup(
-                    noteId = note.id,
+                    entryId = entry.id,
                     onUndo = {
                         closeActions()
                         onUndo()

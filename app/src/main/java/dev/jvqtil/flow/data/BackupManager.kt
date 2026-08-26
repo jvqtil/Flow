@@ -12,7 +12,7 @@ object BackupManager {
     fun exportNotes(
         context: Context,
         uri: Uri,
-        notes: List<Note>
+        entries: List<Entry>
     ) {
         val root = JSONObject()
 
@@ -20,7 +20,7 @@ object BackupManager {
 
         val notesArray = JSONArray()
 
-        notes.forEach { note ->
+        entries.forEach { note ->
             val jsonNote = JSONObject()
 
             jsonNote.put("id", note.id)
@@ -52,7 +52,7 @@ object BackupManager {
     fun importNotes(
         context: Context,
         uri: Uri
-    ): List<Note> {
+    ): List<Entry> {
         val json = context.contentResolver
             .openInputStream(uri)
             ?.use { inputStream ->
@@ -84,7 +84,7 @@ object BackupManager {
                 "Invalid backup file"
             )
 
-        val notes = mutableListOf<Note>()
+        val entries = mutableListOf<Entry>()
 
         for (index in 0 until notesArray.length()) {
             val jsonNote = notesArray.optJSONObject(index)
@@ -97,7 +97,7 @@ object BackupManager {
                 continue
             }
 
-            notes += Note(
+            entries += Entry(
                 id = id,
                 text = text,
                 createdAt = jsonNote.optLong(
@@ -129,6 +129,6 @@ object BackupManager {
             )
         }
 
-        return notes
+        return entries
     }
 }

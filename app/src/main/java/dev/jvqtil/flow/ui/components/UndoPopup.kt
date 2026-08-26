@@ -21,11 +21,11 @@ import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun UndoPopup(
-    noteId: String,
+    entryId: String,
     onUndo: () -> Unit,
     onTimeout: () -> Unit
 ) {
-    LaunchedEffect(noteId) {
+    LaunchedEffect(entryId) {
         delay(3.seconds)
         onTimeout()
     }

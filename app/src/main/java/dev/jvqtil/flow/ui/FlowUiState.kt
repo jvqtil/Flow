@@ -1,11 +1,11 @@
 package dev.jvqtil.flow.ui
 
-import dev.jvqtil.flow.data.Note
+import dev.jvqtil.flow.data.Entry
 
 data class FlowUiState(
-    val notes: List<NoteUiModel> = emptyList(),
-    val pendingDeletedNotes: Map<String, Note> = emptyMap(),
-    val undoNote: Note? = null,
-    val restoringNoteId: String? = null,
-    val deletingNoteIds: Set<String> = emptySet()
+    val entries: List<EntryUiModel> = emptyList(),
+    val pendingDeletedEntries: Map<String, Entry> = emptyMap(),
+    val undoEntry: Entry? = null,
+    val restoringEntryId: String? = null,
+    val deletingEntriesIds: Set<String> = emptySet()
 )

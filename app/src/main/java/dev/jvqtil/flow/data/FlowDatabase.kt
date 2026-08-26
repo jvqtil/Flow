@@ -4,11 +4,11 @@ import androidx.room3.Database
 import androidx.room3.RoomDatabase
 
 @Database(
-    entities = [Note::class],
+    entities = [Entry::class],
     version = 3,
     exportSchema = false
 )
 abstract class FlowDatabase : RoomDatabase() {
 
-    abstract fun noteDao(): NoteDao
+    abstract fun entryDao(): FlowDao
 }

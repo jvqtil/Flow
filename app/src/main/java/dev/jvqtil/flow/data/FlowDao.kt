@@ -9,22 +9,22 @@ import androidx.room3.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface NoteDao {
+interface FlowDao {
 
     @Query(
         "SELECT * FROM notes " +
                 "ORDER BY position ASC, createdAt DESC"
     )
-    fun observeNotes(): Flow<List<Note>>
+    fun observeNotes(): Flow<List<Entry>>
 
     @Query(
         "SELECT * FROM notes " +
                 "ORDER BY position ASC, createdAt DESC"
     )
-    suspend fun getAllNotes(): List<Note>
+    suspend fun getAllNotes(): List<Entry>
 
     @Query("SELECT * FROM notes WHERE id = :id LIMIT 1")
-    suspend fun getById(id: String): Note?
+    suspend fun getById(id: String): Entry?
 
     @Query(
         "UPDATE notes " +
@@ -42,14 +42,14 @@ interface NoteDao {
     )
 
     @Insert
-    suspend fun insert(note: Note)
+    suspend fun insert(entry: Entry)
 
     @Update
-    suspend fun update(note: Note)
+    suspend fun update(entry: Entry)
 
     @Delete
-    suspend fun delete(note: Note)
+    suspend fun delete(entry: Entry)
 
     @Upsert
-    suspend fun upsert(note: Note)
+    suspend fun upsert(entry: Entry)
 }

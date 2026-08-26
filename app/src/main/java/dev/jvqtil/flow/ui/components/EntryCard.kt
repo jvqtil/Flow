@@ -56,13 +56,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
-import dev.jvqtil.flow.ui.NoteUiModel
+import dev.jvqtil.flow.ui.EntryUiModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
-fun NoteCard(
-    note: NoteUiModel,
+fun EntryCard(
+    entry: EntryUiModel,
     previewLines: Int,
     shouldAnimate: Boolean,
     isDeleting: Boolean,
@@ -75,7 +75,7 @@ fun NoteCard(
     onToggleTaskNote: () -> Unit,
     onAnimationFinished: () -> Unit
 ) {
-    val visibleState = remember(note.id) {
+    val visibleState = remember(entry.id) {
         MutableTransitionState(
             !(shouldAnimate && !isDeleting)
         )
@@ -84,7 +84,7 @@ fun NoteCard(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
 
-    var textLayoutResult by remember(note.id, previewLines) {
+    var textLayoutResult by remember(entry.id, previewLines) {
         mutableStateOf<TextLayoutResult?>(null)
     }
 
@@ -99,11 +99,11 @@ fun NoteCard(
         actionToolbarWidth.toPx()
     }
 
-    val offsetX = remember(note.id) {
+    val offsetX = remember(entry.id) {
         Animatable(0f)
     }
 
-    var lastCloseActionsToken by remember(note.id) {
+    var lastCloseActionsToken by remember(entry.id) {
         mutableFloatStateOf(0f)
     }
 
@@ -179,7 +179,7 @@ fun NoteCard(
 
     val textStartPadding by animateDpAsState(
         targetValue =
-            if (note.type == ENTRY_TYPE_TASK) {
+            if (entry.type == ENTRY_TYPE_TASK) {
                 34.dp
             } else {
                 0.dp
@@ -236,7 +236,7 @@ fun NoteCard(
                                     Icons.Default.SwapHoriz,
                                 contentDescription =
                                     if (
-                                        note.type ==
+                                        entry.type ==
                                         ENTRY_TYPE_TASK
                                     ) {
                                         "Convert to note"
@@ -255,7 +255,7 @@ fun NoteCard(
                             Text(
                                 text =
                                     if (
-                                        note.type ==
+                                        entry.type ==
                                         ENTRY_TYPE_TASK
                                     ) {
                                         "Note"
@@ -316,7 +316,7 @@ fun NoteCard(
                             )
                     )
                     .then(dragHandleModifier)
-                    .pointerInput(note.id) {
+                    .pointerInput(entry.id) {
                         detectHorizontalDragGestures(
                             onHorizontalDrag = { _, dragAmount ->
 
@@ -405,7 +405,7 @@ fun NoteCard(
             ) {
                 AnimatedVisibility(
                     visible =
-                        note.type == ENTRY_TYPE_TASK,
+                        entry.type == ENTRY_TYPE_TASK,
                     enter =
                         fadeIn(
                             animationSpec = tween(280)
@@ -426,7 +426,7 @@ fun NoteCard(
                         )
                 ) {
                     TaskCheckbox(
-                        checked = note.completed,
+                        checked = entry.completed,
                         onClick = onToggleCompleted
                     )
                 }
@@ -467,7 +467,7 @@ fun NoteCard(
                         }
                 ) {
                     Text(
-                        text = note.text,
+                        text = entry.text,
                         maxLines = previewLines,
                         style =
                             MaterialTheme
