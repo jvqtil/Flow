@@ -1,14 +1,14 @@
 # Flow
 
-Notes app for Android. Fully native. Just your notes, no bullshit
+Notes & Tasks app for Android. Fully native. Just your stuff, no bullshit
 
 ## Features
 
-- Minimal note editor
+- Minimal editor
 - Local-only storage
 - Smooth, yet fast animations
 - Swipe gestures
-- Drag-and-drop note reordering
+- Drag-and-drop reordering
 - Material UI
 - Dynamic colors on Android 12+
 - AMOLED background option
