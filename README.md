@@ -16,7 +16,8 @@ Notes & Tasks app for Android. Fully native. Just your stuff, no bullshit
 - Customizable UI and editor fonts
 
 ## Installation
-<a href="../../releases/latest">
+
+<a href="https://github.com/jvqtil/Flow/releases/latest">
   <img src="https://img.shields.io/badge/Download%20APK-8B5CF6?style=for-the-badge&logo=android&logoColor=white" alt="Download APK">
 </a>
 
