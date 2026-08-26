@@ -24,18 +24,12 @@ Notes & Tasks app for Android. Fully native. Just your stuff, no bullshit
 
 ### Dark
 
-| Home                               | Editing                                  | Settings                                   |
-|------------------------------------|------------------------------------------|--------------------------------------------|
-| ![Home](screenshots/Home_Dark.png) | ![Editing](screenshots/Editing_Dark.png) | ![Settings](screenshots/Settings_Dark.png) |
-
-### AMOLED
-
-| Home                                 | Editing                                    | Settings                                     |
-|--------------------------------------|--------------------------------------------|----------------------------------------------|
-| ![Home](screenshots/Home_Amoled.png) | ![Editing](screenshots/Editing_Amoled.png) | ![Settings](screenshots/Settings_Amoled.png) |
+| Home                                    | Editing                                       | Settings                                        |
+|-----------------------------------------|-----------------------------------------------|-------------------------------------------------|
+| ![Home](screenshots/Flow_Home_Dark.png) | ![Editing](screenshots/Flow_Editing_Dark.png) | ![Settings](screenshots/Flow_Settings_Dark.png) |
 
 ### Light
 
-| Home                                | Editing                                   | Settings                                    |
-|-------------------------------------|-------------------------------------------|---------------------------------------------|
-| ![Home](screenshots/Home_Light.png) | ![Editing](screenshots/Editing_Light.png) | ![Settings](screenshots/Settings_Light.png) |eenshots/Home_Light.png) | ![Editing](screenshots/Editing_Light.png) | ![Settings](screenshots/Settings_Light.png) |
+| Home                                     | Editing                                        | Settings                                         |
+|------------------------------------------|------------------------------------------------|--------------------------------------------------|
+| ![Home](screenshots/Flow_Home_Light.png) | ![Editing](screenshots/Flow_Editing_Light.png) | ![Settings](screenshots/Flow_Settings_Light.png) |
