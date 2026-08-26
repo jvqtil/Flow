@@ -70,7 +70,7 @@ class FlowFireModel(
         viewModelScope.launch {
             databaseMutex.withLock {
                 repository.insertNoteAtTop(
-                    note.toDataModel()
+                    normalizedNote.toDataModel()
                 )
             }
         }

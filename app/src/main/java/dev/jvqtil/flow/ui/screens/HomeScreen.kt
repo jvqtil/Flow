@@ -68,12 +68,15 @@ fun HomeScreen(
     val listState = rememberLazyListState()
 
     LaunchedEffect(shouldScrollToTop) {
-        if (shouldScrollToTop && notes.isNotEmpty()) {
-            listState.animateScrollToItem(
-                index = 0,
-            )
-            onScrollToTopHandled()
+        if (!shouldScrollToTop) return@LaunchedEffect
+
+        delay(100.milliseconds)
+
+        if (listState.layoutInfo.totalItemsCount > 0) {
+            listState.animateScrollToItem(0)
         }
+
+        onScrollToTopHandled()
     }
 
     var localNotes by remember {

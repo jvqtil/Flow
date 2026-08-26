@@ -351,15 +351,15 @@ fun FlowNavHost(
                 onDispose {
                     if (skipSaveOnDispose) return@onDispose
 
-                    val currentNote = note
+                    val currentNote = note ?: return@onDispose
 
-                    if (currentNote != null) {
-                        if (isNew) {
+                    if (isNew) {
+                        if (currentNote.text.isNotBlank()) {
                             flowFireModel.saveNewNote(currentNote)
                             shouldScrollHomeToTop = true
-                        } else {
-                            flowFireModel.updateNote(currentNote)
                         }
+                    } else {
+                        flowFireModel.updateNote(currentNote)
                     }
                 }
             }
