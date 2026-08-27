@@ -15,6 +15,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -524,6 +525,17 @@ fun TaskCheckbox(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
+            )
+            .then(
+                if (!checked) {
+                    Modifier.border(
+                        width = 1.5.dp,
+                        color = MaterialTheme.colorScheme.outline,
+                        shape = RoundedCornerShape(6.dp)
+                    )
+                } else {
+                    Modifier
+                }
             ),
         contentAlignment = Alignment.Center
     ) {
