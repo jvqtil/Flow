@@ -34,8 +34,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import dev.jvqtil.flow.R
 import dev.jvqtil.flow.data.Entry
 import dev.jvqtil.flow.ui.EntryUiModel
 import dev.jvqtil.flow.ui.components.AddButton
@@ -187,7 +189,7 @@ fun HomeScreen(
             .navigationBarsPadding()
     ) {
         Text(
-            text = "Flow",
+            text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier
@@ -209,7 +211,7 @@ fun HomeScreen(
         ) {
             Icon(
                 imageVector = Icons.Default.Settings,
-                contentDescription = "Settings",
+                contentDescription = stringResource(R.string.settings_label),
                 tint = MaterialTheme.colorScheme.onBackground
             )
         }
@@ -221,7 +223,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "No notes yet",
+                    text = stringResource(R.string.no_notes_yet_label),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

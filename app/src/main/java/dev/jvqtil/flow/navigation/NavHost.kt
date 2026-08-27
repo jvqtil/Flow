@@ -256,7 +256,7 @@ fun FlowNavHost(
                     flowFireModel::toggleCompleted,
 
                 onToggleTaskNote =
-                    flowFireModel::toggleTaskNote
+                    flowFireModel::toggleTaskNote,
             )
         }
 

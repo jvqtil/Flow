@@ -38,11 +38,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.jvqtil.flow.R
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.ui.EntryUiModel
 import dev.jvqtil.flow.ui.models.EditorFont
@@ -51,13 +54,6 @@ import dev.jvqtil.flow.ui.models.UiFont
 import dev.jvqtil.flow.ui.models.fontFamily
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
-
-private val Placeholders = listOf(
-    "Any ideas?",
-    "Another B2B SAAS idea?",
-    "Claude didn't help i see..",
-    "Everything stays local (thankfully)"
-)
 
 @Composable
 fun EditorScreen(
@@ -71,9 +67,9 @@ fun EditorScreen(
     onDelete: () -> Unit,
     onToggleTaskNote: () -> Unit
 ) {
-    val prompt = remember {
-        Placeholders.random()
-    }
+    val placeholders = stringArrayResource(
+        R.array.editor_placeholders
+    )
 
     val focusRequester = remember {
         FocusRequester()
@@ -200,9 +196,9 @@ fun EditorScreen(
                             imageVector = Icons.Default.SwapHoriz,
                             contentDescription =
                                 if (entry.type == ENTRY_TYPE_TASK) {
-                                    "Convert to note"
+                                    stringResource(R.string.convert_to_note_label)
                                 } else {
-                                    "Convert to task"
+                                    stringResource(R.string.convert_to_task_label)
                                 },
                             tint = MaterialTheme.colorScheme.onBackground
                         )
@@ -210,9 +206,9 @@ fun EditorScreen(
                         Text(
                             text =
                                 if (entry.type == ENTRY_TYPE_TASK) {
-                                    "Task"
+                                    stringResource(R.string.task_label)
                                 } else {
-                                    "Note"
+                                    stringResource(R.string.note_label)
                                 },
                             color = MaterialTheme.colorScheme.onBackground,
                             style = MaterialTheme.typography.labelLarge,
@@ -234,7 +230,7 @@ fun EditorScreen(
                     Icon(
                         imageVector =
                             Icons.Default.DeleteOutline,
-                        contentDescription = "Delete note",
+                        contentDescription = stringResource(R.string.delete_label),
                         tint =
                             MaterialTheme.colorScheme.onBackground
                     )
@@ -250,10 +246,9 @@ fun EditorScreen(
                             bottom = 12.dp
                         )
                 ) {
-
                     if (entry.text.isEmpty()) {
                         Text(
-                            text = prompt,
+                            text = placeholders.random(),
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontFamily = editorFontFamily
                             ),

@@ -51,10 +51,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.jvqtil.flow.R
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.ui.EntryUiModel
 import kotlinx.coroutines.launch
@@ -107,8 +109,29 @@ fun EntryCard(
         mutableFloatStateOf(0f)
     }
 
-    val surfaceColor =
-        MaterialTheme.colorScheme.surfaceContainer
+    val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
+
+    val textStartPadding by animateDpAsState(
+        targetValue =
+            if (entry.type == ENTRY_TYPE_TASK) {
+                34.dp
+            } else {
+                0.dp
+            },
+        animationSpec = tween(220),
+        label = "textStartPadding"
+    )
+
+    val cornerRadius by animateDpAsState(
+        targetValue =
+            if (isDragging) {
+                24.dp
+            } else {
+                20.dp
+            },
+        animationSpec = tween(180),
+        label = "cornerRadius"
+    )
 
     LaunchedEffect(
         shouldAnimate,
@@ -166,28 +189,6 @@ fun EntryCard(
         )
     }
 
-    val cornerRadius by animateDpAsState(
-        targetValue =
-            if (isDragging) {
-                24.dp
-            } else {
-                20.dp
-            },
-        animationSpec = tween(180),
-        label = "cornerRadius"
-    )
-
-    val textStartPadding by animateDpAsState(
-        targetValue =
-            if (entry.type == ENTRY_TYPE_TASK) {
-                34.dp
-            } else {
-                0.dp
-            },
-        animationSpec = tween(220),
-        label = "textStartPadding"
-    )
-
     AnimatedVisibility(
         visibleState = visibleState,
         enter =
@@ -232,24 +233,26 @@ fun EntryCard(
                                 Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector =
-                                    Icons.Default.SwapHoriz,
+                                imageVector = Icons.Default.SwapHoriz,
                                 contentDescription =
                                     if (
                                         entry.type ==
                                         ENTRY_TYPE_TASK
                                     ) {
-                                        "Convert to note"
+                                        stringResource(
+                                            R.string.convert_to_task_label
+                                        )
                                     } else {
-                                        "Convert to task"
+                                        stringResource(
+                                            R.string.convert_to_note_label
+                                        )
                                     },
                                 tint =
                                     MaterialTheme.colorScheme.primary
                             )
 
                             Spacer(
-                                modifier =
-                                    Modifier.width(4.dp)
+                                modifier = Modifier.width(4.dp)
                             )
 
                             Text(
@@ -258,9 +261,13 @@ fun EntryCard(
                                         entry.type ==
                                         ENTRY_TYPE_TASK
                                     ) {
-                                        "Note"
+                                        stringResource(
+                                            R.string.note_label
+                                        )
                                     } else {
-                                        "Task"
+                                        stringResource(
+                                            R.string.task_label
+                                        )
                                     },
                                 color =
                                     MaterialTheme.colorScheme.primary,
@@ -288,10 +295,11 @@ fun EntryCard(
                             .size(actionToolbarWidth)
                     ) {
                         Icon(
-                            imageVector =
-                                Icons.Default.Delete,
+                            imageVector = Icons.Default.Delete,
                             contentDescription =
-                                "Delete",
+                                stringResource(
+                                    R.string.delete_label
+                                ),
                             tint =
                                 MaterialTheme.colorScheme.error
                         )
@@ -310,10 +318,7 @@ fun EntryCard(
                     }
                     .background(
                         color = surfaceColor,
-                        shape =
-                            RoundedCornerShape(
-                                cornerRadius
-                            )
+                        shape = RoundedCornerShape(cornerRadius)
                     )
                     .then(dragHandleModifier)
                     .pointerInput(entry.id) {
@@ -337,9 +342,7 @@ fun EntryCard(
                                                 taskToolbarWidthPx
                                             )
 
-                                    offsetX.snapTo(
-                                        newOffset
-                                    )
+                                    offsetX.snapTo(newOffset)
                                 }
                             },
                             onDragEnd = {
@@ -369,8 +372,7 @@ fun EntryCard(
 
                                     offsetX.animateTo(
                                         targetValue = target,
-                                        animationSpec =
-                                            tween(220)
+                                        animationSpec = tween(220)
                                     )
                                 }
                             },
@@ -378,8 +380,7 @@ fun EntryCard(
                                 scope.launch {
                                     offsetX.animateTo(
                                         targetValue = 0f,
-                                        animationSpec =
-                                            tween(220)
+                                        animationSpec = tween(220)
                                     )
                                 }
                             }
@@ -393,8 +394,7 @@ fun EntryCard(
                             scope.launch {
                                 offsetX.animateTo(
                                     targetValue = 0f,
-                                    animationSpec =
-                                        tween(220)
+                                    animationSpec = tween(220)
                                 )
                             }
                         } else {
@@ -403,40 +403,9 @@ fun EntryCard(
                     }
                     .padding(18.dp)
             ) {
-                AnimatedVisibility(
-                    visible =
-                        entry.type == ENTRY_TYPE_TASK,
-                    enter =
-                        fadeIn(
-                            animationSpec = tween(280)
-                        ) + scaleIn(
-                            initialScale = 0.80f,
-                            animationSpec = tween(320)
-                        ),
-                    exit =
-                        fadeOut(
-                            animationSpec = tween(240)
-                        ) + scaleOut(
-                            targetScale = 0.80f,
-                            animationSpec = tween(280)
-                        ),
-                    modifier =
-                        Modifier.align(
-                            Alignment.CenterStart
-                        )
-                ) {
-                    TaskCheckbox(
-                        checked = entry.completed,
-                        onClick = onToggleCompleted
-                    )
-                }
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(
-                            start = textStartPadding
-                        )
                         .drawWithContent {
                             drawContent()
 
@@ -447,38 +416,58 @@ fun EntryCard(
                                 drawRect(
                                     brush =
                                         Brush.verticalGradient(
-                                            colors =
-                                                listOf(
-                                                    surfaceColor.copy(
-                                                        alpha = 0f
-                                                    ),
-                                                    surfaceColor.copy(
-                                                        alpha = 0.75f
-                                                    ),
-                                                    surfaceColor
+                                            colors = listOf(
+                                                surfaceColor.copy(
+                                                    alpha = 0f
                                                 ),
+                                                surfaceColor.copy(
+                                                    alpha = 0.75f
+                                                ),
+                                                surfaceColor
+                                            ),
                                             startY =
                                                 size.height * 0.90f,
-                                            endY =
-                                                size.height
+                                            endY = size.height
                                         )
                                 )
                             }
                         }
                 ) {
+                    AnimatedVisibility(
+                        visible = entry.type == ENTRY_TYPE_TASK,
+                        enter =
+                            fadeIn(
+                                animationSpec = tween(280)
+                            ) + scaleIn(
+                                initialScale = 0.80f,
+                                animationSpec = tween(320)
+                            ),
+                        exit =
+                            fadeOut(
+                                animationSpec = tween(240)
+                            ) + scaleOut(
+                                targetScale = 0.80f,
+                                animationSpec = tween(280)
+                            ),
+                        modifier = Modifier.align(Alignment.TopStart)
+                    ) {
+                        TaskCheckbox(
+                            checked = entry.completed,
+                            onClick = onToggleCompleted
+                        )
+                    }
+
                     Text(
                         text = entry.text,
                         maxLines = previewLines,
-                        style =
-                            MaterialTheme
-                                .typography
-                                .bodyLarge,
-                        fontWeight =
-                            FontWeight.Medium,
-                        color =
-                            MaterialTheme
-                                .colorScheme
-                                .onSurface,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = textStartPadding
+                            ),
                         onTextLayout = {
                             textLayoutResult = it
                         }
@@ -555,7 +544,7 @@ fun TaskCheckbox(
         ) {
             Icon(
                 imageVector = Icons.Default.Check,
-                contentDescription = "Completed",
+                contentDescription = stringResource(R.string.completed_label),
                 tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(16.dp)
             )

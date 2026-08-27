@@ -36,11 +36,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.jvqtil.flow.BuildConfig
+import dev.jvqtil.flow.R
 import dev.jvqtil.flow.ui.models.EditorFont
 import dev.jvqtil.flow.ui.models.KeyboardMode
 import dev.jvqtil.flow.ui.models.UiFont
@@ -72,27 +75,28 @@ fun SettingsScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
-            .navigationBarsPadding()
-            .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(
+                    horizontal = 20.dp,
+                    vertical = 8.dp
+                )
         ) {
             IconButton(
                 onClick = onBack
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(R.string.back_label),
                     tint = MaterialTheme.colorScheme.onBackground
                 )
             }
 
             Text(
-                text = "Settings",
+                text = stringResource(R.string.settings_label),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -100,370 +104,380 @@ fun SettingsScreen(
             )
         }
 
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        Text(
-            text = "Appearance",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
-
-        Row(
+        Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .verticalScroll(scrollState)
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp)
         ) {
-            Column(
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            Text(
+                text = stringResource(R.string.appearance_label),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(
+                modifier = Modifier.height(12.dp)
+            )
+
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 16.dp)
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "Pure black",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.pure_black_label),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
 
-                Spacer(
-                    modifier = Modifier.height(2.dp)
-                )
+                    Spacer(
+                        modifier = Modifier.height(2.dp)
+                    )
 
-                Text(
-                    text = "For AMOLED displays · Dark mode only",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Text(
+                        text = stringResource(R.string.pure_black_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Switch(
+                    checked = amoled,
+                    enabled = isDark,
+                    onCheckedChange = onAmoledChanged
                 )
             }
 
-            Switch(
-                checked = amoled,
-                enabled = isDark,
-                onCheckedChange = onAmoledChanged
+            Spacer(
+                modifier = Modifier.height(12.dp)
             )
-        }
 
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
-
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.surfaceContainerHighest
-        )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        Text(
-            text = "Fonts",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(
-            modifier = Modifier.height(8.dp)
-        )
-
-        SettingCard(
-            title = "UI",
-            options = listOf(
-                SettingOption(
-                    title = "Default",
-                    fontFamily = UiFont.DEFAULT.fontFamily(),
-                    selected = uiFont == UiFont.DEFAULT,
-                    onClick = {
-                        onUiFontChanged(UiFont.DEFAULT)
-                    }
-                ),
-                SettingOption(
-                    title = "Serif",
-                    fontFamily = UiFont.SERIF.fontFamily(),
-                    selected = uiFont == UiFont.SERIF,
-                    onClick = {
-                        onUiFontChanged(UiFont.SERIF)
-                    }
-                ),
-                SettingOption(
-                    title = "Monospace",
-                    fontFamily = UiFont.MONOSPACE.fontFamily(),
-                    selected = uiFont == UiFont.MONOSPACE,
-                    onClick = {
-                        onUiFontChanged(UiFont.MONOSPACE)
-                    }
-                ),
-                SettingOption(
-                    title = "JetBrains Mono",
-                    fontFamily = UiFont.JETBRAINS_MONO.fontFamily(),
-                    selected = uiFont == UiFont.JETBRAINS_MONO,
-                    onClick = {
-                        onUiFontChanged(UiFont.JETBRAINS_MONO)
-                    }
-                )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceContainerHighest
             )
-        )
 
-        Spacer(
-            modifier = Modifier.height(8.dp)
-        )
-
-        SettingCard(
-            title = "Editor",
-            options = listOf(
-                SettingOption(
-                    title = "UI Font",
-                    fontFamily = uiFont.fontFamily(),
-                    selected = editorFont == EditorFont.UI_FONT,
-                    onClick = {
-                        onEditorFontChanged(EditorFont.UI_FONT)
-                    }
-                ),
-                SettingOption(
-                    title = "Serif",
-                    fontFamily = FontFamily.Serif,
-                    selected = editorFont == EditorFont.SERIF,
-                    onClick = {
-                        onEditorFontChanged(EditorFont.SERIF)
-                    }
-                ),
-                SettingOption(
-                    title = "Monospace",
-                    fontFamily = FontFamily.Monospace,
-                    selected = editorFont == EditorFont.MONOSPACE,
-                    onClick = {
-                        onEditorFontChanged(EditorFont.MONOSPACE)
-                    }
-                ),
-                SettingOption(
-                    title = "JetBrains Mono",
-                    fontFamily = EditorFont.JETBRAINS_MONO.fontFamily(uiFont),
-                    selected = editorFont == EditorFont.JETBRAINS_MONO,
-                    onClick = {
-                        onEditorFontChanged(EditorFont.JETBRAINS_MONO)
-                    }
-                )
+            Spacer(
+                modifier = Modifier.height(16.dp)
             )
-        )
 
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
+            Text(
+                text = stringResource(R.string.fonts_label),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.surfaceContainerHighest
-        )
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
 
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        Text(
-            text = "Preview",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Text(
-            text = "$previewLines lines",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Slider(
-            value = previewLines.toFloat(),
-            onValueChange = { value ->
-                onPreviewLinesChanged(value.roundToInt())
-            },
-            valueRange = 3f..12f,
-            steps = 8
-        )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.surfaceContainerHighest
-        )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        Text(
-            text = "Keyboard",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Text(
-            text = "Changes how keyboard behaves",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(
-            modifier = Modifier.height(8.dp)
-        )
-
-        SingleChoiceSegmentedButtonRow(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            KeyboardMode.entries.forEachIndexed { index, mode ->
-                SegmentedButton(
-                    selected = keyboardMode == mode,
-                    onClick = {
-                        onKeyboardModeChanged(mode)
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = KeyboardMode.entries.size
+            SettingCard(
+                title = stringResource(R.string.ui_label),
+                options = listOf(
+                    SettingOption(
+                        title = stringResource(R.string.default_font),
+                        fontFamily = UiFont.DEFAULT.fontFamily(),
+                        selected = uiFont == UiFont.DEFAULT,
+                        onClick = {
+                            onUiFontChanged(UiFont.DEFAULT)
+                        }
                     ),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = when (mode) {
-                            KeyboardMode.NORMAL -> "Normal"
-                            KeyboardMode.CODE -> "Code"
+                    SettingOption(
+                        title = stringResource(R.string.serif_font),
+                        fontFamily = UiFont.SERIF.fontFamily(),
+                        selected = uiFont == UiFont.SERIF,
+                        onClick = {
+                            onUiFontChanged(UiFont.SERIF)
+                        }
+                    ),
+                    SettingOption(
+                        title = stringResource(R.string.monospace_font),
+                        fontFamily = UiFont.MONOSPACE.fontFamily(),
+                        selected = uiFont == UiFont.MONOSPACE,
+                        onClick = {
+                            onUiFontChanged(UiFont.MONOSPACE)
+                        }
+                    ),
+                    SettingOption(
+                        title = stringResource(R.string.jetbrains_mono_font),
+                        fontFamily = UiFont.JETBRAINS_MONO.fontFamily(),
+                        selected = uiFont == UiFont.JETBRAINS_MONO,
+                        onClick = {
+                            onUiFontChanged(UiFont.JETBRAINS_MONO)
                         }
                     )
-                }
-            }
-        }
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        HorizontalDivider(
-            color = MaterialTheme.colorScheme.surfaceContainerHighest
-        )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        Text(
-            text = "Backup & Restore",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(
-            modifier = Modifier.height(8.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Surface(
-                onClick = onExport,
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Export",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-
-            Surface(
-                onClick = onImport,
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Import",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    top = 32.dp,
-                    bottom = 12.dp
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Flow ${BuildConfig.VERSION_NAME}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            )
 
-                Surface(
-                    onClick = {
-                        val intent = Intent(
-                            Intent.ACTION_VIEW,
-                            "https://github.com/jvqtil/Flow".toUri()
-                        )
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
 
-                        context.startActivity(intent)
-                    },
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh
-                ) {
-                    Row(
-                        modifier = Modifier.padding(
-                            horizontal = 14.dp,
-                            vertical = 8.dp
+            SettingCard(
+                title = stringResource(R.string.editor_label),
+                options = listOf(
+                    SettingOption(
+                        title = stringResource(R.string.ui_font_font),
+                        fontFamily = uiFont.fontFamily(),
+                        selected = editorFont == EditorFont.UI_FONT,
+                        onClick = {
+                            onEditorFontChanged(EditorFont.UI_FONT)
+                        }
+                    ),
+                    SettingOption(
+                        title = stringResource(R.string.serif_font),
+                        fontFamily = FontFamily.Serif,
+                        selected = editorFont == EditorFont.SERIF,
+                        onClick = {
+                            onEditorFontChanged(EditorFont.SERIF)
+                        }
+                    ),
+                    SettingOption(
+                        title = stringResource(R.string.monospace_font),
+                        fontFamily = FontFamily.Monospace,
+                        selected = editorFont == EditorFont.MONOSPACE,
+                        onClick = {
+                            onEditorFontChanged(EditorFont.MONOSPACE)
+                        }
+                    ),
+                    SettingOption(
+                        title = stringResource(R.string.jetbrains_mono_font),
+                        fontFamily = EditorFont.JETBRAINS_MONO.fontFamily(uiFont),
+                        selected = editorFont == EditorFont.JETBRAINS_MONO,
+                        onClick = {
+                            onEditorFontChanged(EditorFont.JETBRAINS_MONO)
+                        }
+                    )
+                )
+            )
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceContainerHighest
+            )
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            Text(
+                text = stringResource(R.string.preview_label),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Text(
+                pluralStringResource(
+                    R.plurals.preview_lines,
+                    previewLines,
+                    previewLines
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Slider(
+                value = previewLines.toFloat(),
+                onValueChange = { value ->
+                    onPreviewLinesChanged(value.roundToInt())
+                },
+                valueRange = 3f..12f,
+                steps = 8
+            )
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceContainerHighest
+            )
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            Text(
+                text = stringResource(R.string.keyboard_label),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
+
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                KeyboardMode.entries.forEachIndexed { index, mode ->
+                    SegmentedButton(
+                        selected = keyboardMode == mode,
+                        onClick = {
+                            onKeyboardModeChanged(mode)
+                        },
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = KeyboardMode.entries.size
                         ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = "Source Code",
+                            text = when (mode) {
+                                KeyboardMode.NORMAL ->
+                                    stringResource(R.string.normal_label)
+
+                                KeyboardMode.CODE ->
+                                    stringResource(R.string.code_label)
+                            }
+                        )
+                    }
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceContainerHighest
+            )
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            Text(
+                text = stringResource(R.string.backup_restore_label),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    onClick = onExport,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.export_label),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurface
                         )
+                    }
+                }
 
-                        Icon(
-                            imageVector = Icons.Default.NorthEast,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
+                Surface(
+                    onClick = onImport,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.import_label),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
+                    }
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        top = 32.dp,
+                        bottom = 12.dp
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "${stringResource(R.string.app_name)} ${BuildConfig.VERSION_NAME}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Surface(
+                        onClick = {
+                            val intent = Intent(
+                                Intent.ACTION_VIEW,
+                                "https://github.com/jvqtil/Flow".toUri()
+                            )
+
+                            context.startActivity(intent)
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(
+                                horizontal = 14.dp,
+                                vertical = 8.dp
+                            ),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.source_code_label),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            Icon(
+                                imageVector = Icons.Default.NorthEast,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }
