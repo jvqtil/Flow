@@ -71,6 +71,10 @@ fun EditorScreen(
         R.array.editor_placeholders
     )
 
+    val chosenPlaceholder = remember {
+        placeholders.random()
+    }
+
     val focusRequester = remember {
         FocusRequester()
     }
@@ -248,7 +252,7 @@ fun EditorScreen(
                 ) {
                     if (entry.text.isEmpty()) {
                         Text(
-                            text = placeholders.random(),
+                            text = chosenPlaceholder,
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontFamily = editorFontFamily
                             ),
