@@ -6,8 +6,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import dev.jvqtil.flow.ui.components.EditorFont
-import dev.jvqtil.flow.ui.components.UiFont
+import dev.jvqtil.flow.ui.models.EditorFont
+import dev.jvqtil.flow.ui.models.KeyboardMode
+import dev.jvqtil.flow.ui.models.UiFont
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -28,6 +29,9 @@ object AppPreferences {
 
     private val PREVIEW_LINES_KEY =
         intPreferencesKey("preview_lines")
+
+    private val KEYBOARD_MODE =
+        stringPreferencesKey("keyboard_mode")
 
     fun observeAmoled(
         context: Context
@@ -106,6 +110,28 @@ object AppPreferences {
     ) {
         context.dataStore.edit { preferences ->
             preferences[PREVIEW_LINES_KEY] = lines
+        }
+    }
+
+    fun observeKeyboardMode(
+        context: Context
+    ): Flow<KeyboardMode> =
+        context.dataStore.data.map { preferences ->
+            when (preferences[KEYBOARD_MODE]) {
+                KeyboardMode.CODE.name ->
+                    KeyboardMode.CODE
+
+                else ->
+                    KeyboardMode.NORMAL
+            }
+        }
+
+    suspend fun setKeyboardMode(
+        context: Context,
+        mode: KeyboardMode
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[KEYBOARD_MODE] = mode.name
         }
     }
 }

@@ -1,4 +1,4 @@
-package dev.jvqtil.flow.ui.components
+package dev.jvqtil.flow.ui.models
 
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily

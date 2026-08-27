@@ -20,8 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import dev.jvqtil.flow.data.AppPreferences
-import dev.jvqtil.flow.ui.components.UiFont
-import dev.jvqtil.flow.ui.components.fontFamily
+import dev.jvqtil.flow.ui.models.UiFont
+import dev.jvqtil.flow.ui.models.fontFamily
 
 private val FallbackDarkColors = darkColorScheme(
     background = FlowBackground,

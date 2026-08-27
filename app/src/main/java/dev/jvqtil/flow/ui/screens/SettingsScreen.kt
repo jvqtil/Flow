@@ -25,6 +25,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -38,21 +41,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.jvqtil.flow.BuildConfig
-import dev.jvqtil.flow.ui.components.EditorFont
-import dev.jvqtil.flow.ui.components.UiFont
-import dev.jvqtil.flow.ui.components.fontFamily
+import dev.jvqtil.flow.ui.models.EditorFont
+import dev.jvqtil.flow.ui.models.KeyboardMode
+import dev.jvqtil.flow.ui.models.UiFont
+import dev.jvqtil.flow.ui.models.fontFamily
 import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
     amoled: Boolean,
-    uiFont: UiFont,
-    editorFont: EditorFont,
-    previewLines: Int,
     onAmoledChanged: (Boolean) -> Unit,
+    uiFont: UiFont,
     onUiFontChanged: (UiFont) -> Unit,
+    editorFont: EditorFont,
     onEditorFontChanged: (EditorFont) -> Unit,
+    previewLines: Int,
     onPreviewLinesChanged: (Int) -> Unit,
+    keyboardMode: KeyboardMode,
+    onKeyboardModeChanged: (KeyboardMode) -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
     onBack: () -> Unit
@@ -168,10 +174,10 @@ fun SettingsScreen(
             modifier = Modifier.height(8.dp)
         )
 
-        FontSettingCard(
+        SettingCard(
             title = "UI",
             options = listOf(
-                FontOption(
+                SettingOption(
                     title = "Default",
                     fontFamily = UiFont.DEFAULT.fontFamily(),
                     selected = uiFont == UiFont.DEFAULT,
@@ -179,7 +185,7 @@ fun SettingsScreen(
                         onUiFontChanged(UiFont.DEFAULT)
                     }
                 ),
-                FontOption(
+                SettingOption(
                     title = "Serif",
                     fontFamily = UiFont.SERIF.fontFamily(),
                     selected = uiFont == UiFont.SERIF,
@@ -187,7 +193,7 @@ fun SettingsScreen(
                         onUiFontChanged(UiFont.SERIF)
                     }
                 ),
-                FontOption(
+                SettingOption(
                     title = "Monospace",
                     fontFamily = UiFont.MONOSPACE.fontFamily(),
                     selected = uiFont == UiFont.MONOSPACE,
@@ -195,7 +201,7 @@ fun SettingsScreen(
                         onUiFontChanged(UiFont.MONOSPACE)
                     }
                 ),
-                FontOption(
+                SettingOption(
                     title = "JetBrains Mono",
                     fontFamily = UiFont.JETBRAINS_MONO.fontFamily(),
                     selected = uiFont == UiFont.JETBRAINS_MONO,
@@ -210,10 +216,10 @@ fun SettingsScreen(
             modifier = Modifier.height(8.dp)
         )
 
-        FontSettingCard(
+        SettingCard(
             title = "Editor",
             options = listOf(
-                FontOption(
+                SettingOption(
                     title = "UI Font",
                     fontFamily = uiFont.fontFamily(),
                     selected = editorFont == EditorFont.UI_FONT,
@@ -221,7 +227,7 @@ fun SettingsScreen(
                         onEditorFontChanged(EditorFont.UI_FONT)
                     }
                 ),
-                FontOption(
+                SettingOption(
                     title = "Serif",
                     fontFamily = FontFamily.Serif,
                     selected = editorFont == EditorFont.SERIF,
@@ -229,7 +235,7 @@ fun SettingsScreen(
                         onEditorFontChanged(EditorFont.SERIF)
                     }
                 ),
-                FontOption(
+                SettingOption(
                     title = "Monospace",
                     fontFamily = FontFamily.Monospace,
                     selected = editorFont == EditorFont.MONOSPACE,
@@ -237,7 +243,7 @@ fun SettingsScreen(
                         onEditorFontChanged(EditorFont.MONOSPACE)
                     }
                 ),
-                FontOption(
+                SettingOption(
                     title = "JetBrains Mono",
                     fontFamily = EditorFont.JETBRAINS_MONO.fontFamily(uiFont),
                     selected = editorFont == EditorFont.JETBRAINS_MONO,
@@ -281,6 +287,60 @@ fun SettingsScreen(
             valueRange = 3f..12f,
             steps = 8
         )
+
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
+
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.surfaceContainerHighest
+        )
+
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
+
+        Text(
+            text = "Keyboard",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Text(
+            text = "Changes how keyboard behaves",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
+
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            KeyboardMode.entries.forEachIndexed { index, mode ->
+                SegmentedButton(
+                    selected = keyboardMode == mode,
+                    onClick = {
+                        onKeyboardModeChanged(mode)
+                    },
+                    shape = SegmentedButtonDefaults.itemShape(
+                        index = index,
+                        count = KeyboardMode.entries.size
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = when (mode) {
+                            KeyboardMode.NORMAL -> "Normal"
+                            KeyboardMode.CODE -> "Code"
+                        }
+                    )
+                }
+            }
+        }
 
         Spacer(
             modifier = Modifier.height(16.dp)
@@ -411,17 +471,18 @@ fun SettingsScreen(
     }
 }
 
-private data class FontOption(
+private data class SettingOption(
     val title: String,
-    val fontFamily: FontFamily,
     val selected: Boolean,
-    val onClick: () -> Unit
+    val onClick: () -> Unit,
+    val fontFamily: FontFamily? = null
 )
 
 @Composable
-private fun FontSettingCard(
+private fun SettingCard(
     title: String,
-    options: List<FontOption>
+    options: List<SettingOption>,
+    columns: Int = 2
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
@@ -446,26 +507,26 @@ private fun FontSettingCard(
                 modifier = Modifier.height(8.dp)
             )
 
-            options.chunked(2).forEach { rowOptions ->
+            options.chunked(columns).forEachIndexed { index, rowOptions ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     rowOptions.forEach { option ->
-                        FontOptionButton(
+                        SettingOptionButton(
                             option = option,
                             modifier = Modifier.weight(1f)
                         )
                     }
 
-                    if (rowOptions.size == 1) {
+                    repeat(columns - rowOptions.size) {
                         Spacer(
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
 
-                if (rowOptions !== options.chunked(2).last()) {
+                if (index < (options.size - 1) / columns) {
                     Spacer(
                         modifier = Modifier.height(4.dp)
                     )
@@ -476,8 +537,8 @@ private fun FontSettingCard(
 }
 
 @Composable
-private fun FontOptionButton(
-    option: FontOption,
+private fun SettingOptionButton(
+    option: SettingOption,
     modifier: Modifier = Modifier
 ) {
     Surface(

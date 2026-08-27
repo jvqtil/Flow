@@ -34,8 +34,9 @@ import dev.jvqtil.flow.data.FlowRepository
 import dev.jvqtil.flow.ui.EntryUiModel
 import dev.jvqtil.flow.ui.FlowFireModel
 import dev.jvqtil.flow.ui.FlowFireModelFactory
-import dev.jvqtil.flow.ui.components.EditorFont
-import dev.jvqtil.flow.ui.components.UiFont
+import dev.jvqtil.flow.ui.models.EditorFont
+import dev.jvqtil.flow.ui.models.KeyboardMode
+import dev.jvqtil.flow.ui.models.UiFont
 import dev.jvqtil.flow.ui.screens.EditorScreen
 import dev.jvqtil.flow.ui.screens.HomeScreen
 import dev.jvqtil.flow.ui.screens.SettingsScreen
@@ -142,6 +143,12 @@ fun FlowNavHost(
         .observePreviewLines(context)
         .collectAsStateWithLifecycle(
             initialValue = 4
+        )
+
+    val keyboardMode by AppPreferences
+        .observeKeyboardMode(context)
+        .collectAsStateWithLifecycle(
+            initialValue = KeyboardMode.NORMAL
         )
 
     NavHost(
@@ -256,9 +263,6 @@ fun FlowNavHost(
         composable(SETTINGS_ROUTE) {
             SettingsScreen(
                 amoled = amoled,
-                uiFont = uiFont,
-                editorFont = editorFont,
-                previewLines = previewLines,
                 onAmoledChanged = { enabled ->
                     scope.launch {
                         AppPreferences.setAmoled(
@@ -267,6 +271,8 @@ fun FlowNavHost(
                         )
                     }
                 },
+
+                uiFont = uiFont,
                 onUiFontChanged = { font ->
                     scope.launch {
                         AppPreferences.setUiFont(
@@ -275,6 +281,8 @@ fun FlowNavHost(
                         )
                     }
                 },
+
+                editorFont = editorFont,
                 onEditorFontChanged = { font ->
                     scope.launch {
                         AppPreferences.setEditorFont(
@@ -283,6 +291,8 @@ fun FlowNavHost(
                         )
                     }
                 },
+
+                previewLines = previewLines,
                 onPreviewLinesChanged = { lines ->
                     scope.launch {
                         AppPreferences.setPreviewLines(
@@ -291,6 +301,17 @@ fun FlowNavHost(
                         )
                     }
                 },
+
+                keyboardMode = keyboardMode,
+                onKeyboardModeChanged = { mode ->
+                    scope.launch {
+                        AppPreferences.setKeyboardMode(
+                            context = context,
+                            mode = mode
+                        )
+                    }
+                },
+
                 onExport = {
                     exportLauncher.launch("flow-backup.json")
                 },
@@ -384,6 +405,7 @@ fun FlowNavHost(
                     autoFocus = isNew,
                     uiFont = uiFont,
                     editorFont = editorFont,
+                    keyboardMode = keyboardMode,
 
                     onBack = {
                         navController.popBackStack()

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -38,13 +39,16 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.ui.EntryUiModel
-import dev.jvqtil.flow.ui.components.EditorFont
-import dev.jvqtil.flow.ui.components.UiFont
-import dev.jvqtil.flow.ui.components.fontFamily
+import dev.jvqtil.flow.ui.models.EditorFont
+import dev.jvqtil.flow.ui.models.KeyboardMode
+import dev.jvqtil.flow.ui.models.UiFont
+import dev.jvqtil.flow.ui.models.fontFamily
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -61,6 +65,7 @@ fun EditorScreen(
     autoFocus: Boolean,
     uiFont: UiFont,
     editorFont: EditorFont,
+    keyboardMode: KeyboardMode,
     onBack: () -> Unit,
     onTextChange: (String) -> Unit,
     onDelete: () -> Unit,
@@ -106,6 +111,24 @@ fun EditorScreen(
     BasicTextField(
         value = entry.text,
         onValueChange = onTextChange,
+        keyboardOptions =
+            when (keyboardMode) {
+                KeyboardMode.NORMAL ->
+                    KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        capitalization =
+                            KeyboardCapitalization.Sentences,
+                        autoCorrectEnabled = true
+                    )
+
+                KeyboardMode.CODE ->
+                    KeyboardOptions(
+                        keyboardType = KeyboardType.Ascii,
+                        capitalization =
+                            KeyboardCapitalization.None,
+                        autoCorrectEnabled = false
+                    )
+            },
         modifier = Modifier
             .fillMaxSize()
             .background(
