@@ -1,9 +1,14 @@
 package dev.jvqtil.flow.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -12,6 +17,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -19,47 +29,99 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.jvqtil.flow.R
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun UndoPopup(
-    entryId: String,
+    id: String,
     onUndo: () -> Unit,
     onTimeout: () -> Unit
 ) {
-    LaunchedEffect(entryId) {
+    var visible by remember(id) {
+        mutableStateOf(false)
+    }
+
+    var clicked by remember(id) {
+        mutableStateOf(false)
+    }
+
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(id) {
+        visible = true
+
         delay(3.seconds)
-        onTimeout()
+
+        if (!clicked) {
+            visible = false
+
+            delay(250.milliseconds)
+
+            onTimeout()
+        }
     }
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
             .navigationBarsPadding()
             .padding(bottom = 16.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
-        Box(
-            modifier = Modifier
-                .size(
-                    width = 84.dp,
-                    height = 48.dp
-                )
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shape = RoundedCornerShape(14.dp)
-                )
-                .clickable(
-                    onClick = onUndo
-                ),
-            contentAlignment = Alignment.Center
+        AnimatedVisibility(
+            visible = visible,
+            enter =
+                slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = tween(300)
+                ) +
+                        fadeIn(
+                            animationSpec = tween(200)
+                        ),
+            exit =
+                slideOutVertically(
+                    targetOffsetY = { it },
+                    animationSpec = tween(250)
+                ) +
+                        fadeOut(
+                            animationSpec = tween(180)
+                        )
         ) {
-            Text(
-                text = stringResource(R.string.undo_label),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Box(
+                modifier = Modifier
+                    .size(
+                        width = 84.dp,
+                        height = 48.dp
+                    )
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(14.dp)
+                    )
+                    .clickable {
+                        if (clicked) return@clickable
+
+                        clicked = true
+
+                        scope.launch {
+                            visible = false
+
+                            delay(250.milliseconds)
+
+                            onUndo()
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.undo_label
+                    ).uppercase(),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

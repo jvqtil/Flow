@@ -1,9 +1,12 @@
 package dev.jvqtil.flow.data
 
+import android.net.Uri
 import kotlinx.coroutines.flow.Flow
 
 class FlowRepository(
-    private val flowDao: FlowDao
+    private val flowDao: FlowDao,
+    private val attachmentDao: AttachmentDao,
+    private val attachmentStorage: AttachmentStorage
 ) {
 
     fun observeEntries(): Flow<List<Entry>> {
@@ -14,7 +17,7 @@ class FlowRepository(
         return flowDao.getAllNotes()
     }
 
-    suspend fun getEntry(id: String): Entry? {
+    suspend fun findById(id: String): Entry? {
         return flowDao.getById(id)
     }
 
@@ -26,32 +29,88 @@ class FlowRepository(
         )
     }
 
-    suspend fun updateEntry(entry: Entry) {
+    suspend fun update(entry: Entry) {
         flowDao.update(entry)
     }
 
-    suspend fun deleteEntry(entry: Entry) {
+    suspend fun delete(entry: Entry) {
         flowDao.delete(entry)
     }
 
-    suspend fun restoreEntry(entry: Entry) {
+    suspend fun restore(entry: Entry) {
         flowDao.upsert(entry)
     }
 
-    suspend fun restoreEntry(entries: List<Entry>) {
-        entries.forEach { note ->
-            flowDao.upsert(note)
+    suspend fun restore(entries: List<Entry>) {
+        entries.forEach { entry ->
+            flowDao.upsert(entry)
         }
     }
 
     suspend fun updateEntriesPositions(
-        noteIds: List<String>
+        entryIds: List<String>
     ) {
-        noteIds.forEachIndexed { index, id ->
+        entryIds.forEachIndexed { index, id ->
             flowDao.updatePosition(
                 id = id,
                 position = index.toLong()
             )
         }
+    }
+
+    fun observeAttachments(
+        entryId: String
+    ): Flow<List<Attachment>> {
+        return attachmentDao.observeForEntry(entryId)
+    }
+
+    suspend fun insertAttachment(
+        entryId: String,
+        uri: Uri
+    ): Attachment {
+        val metadata =
+            attachmentStorage.getMetadata(uri)
+
+        val path =
+            attachmentStorage.copyIntoStorage(
+                uri = uri,
+                fileName = metadata.fileName
+            )
+
+        val attachment =
+            Attachment(
+                entryId = entryId,
+                path = path,
+                fileName = metadata.fileName,
+                mimeType = metadata.mimeType,
+                size = metadata.size
+            )
+
+        try {
+            attachmentDao.insert(attachment)
+        } catch (error: Throwable) {
+            attachmentStorage.delete(path)
+            throw error
+        }
+
+        return attachment
+    }
+
+    suspend fun deleteAttachment(
+        attachment: Attachment
+    ) {
+        attachmentStorage.delete(attachment.path)
+        attachmentDao.delete(attachment)
+    }
+
+    suspend fun purgeAttachments(entryId: String) {
+        val attachments =
+            attachmentDao.getForEntry(entryId)
+
+        attachments.forEach { attachment ->
+            attachmentStorage.delete(attachment.path)
+        }
+
+        attachmentDao.deleteForEntry(entryId)
     }
 }

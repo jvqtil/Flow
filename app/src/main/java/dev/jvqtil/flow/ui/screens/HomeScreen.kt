@@ -395,7 +395,7 @@ fun HomeScreen(
         ) {
             undoEntry?.let { entry ->
                 UndoPopup(
-                    entryId = entry.id,
+                    id = entry.id,
                     onUndo = {
                         closeActions()
                         onUndo()

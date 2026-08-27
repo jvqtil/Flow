@@ -12,6 +12,7 @@
     <string name="completed_label">Выполнено</string>
     <string name="convert_to_task_label">Преобразовать в задачу</string>
     <string name="convert_to_note_label">Преобразовать в заметку</string>
+    <string name="attach_file_label">Прикрепить файл</string>
 
     <string name="appearance_label">Внешний вид</string>
     <string name="pure_black_description">Для AMOLED-дисплеев · Только для тёмной темы</string>

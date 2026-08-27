@@ -1,5 +1,7 @@
 package dev.jvqtil.flow.navigation
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -29,7 +32,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.jvqtil.flow.data.AppPreferences
+import dev.jvqtil.flow.data.Attachment
+import dev.jvqtil.flow.data.AttachmentStorage
 import dev.jvqtil.flow.data.BackupManager
+import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
+import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.data.FlowRepository
 import dev.jvqtil.flow.ui.EntryUiModel
 import dev.jvqtil.flow.ui.FlowFireModel
@@ -44,7 +51,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun FlowNavHost(
-    repository: FlowRepository
+    repository: FlowRepository,
+    attachmentStorage: AttachmentStorage
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -93,7 +101,7 @@ fun FlowNavHost(
                         uri = uri
                     )
 
-                    repository.restoreEntry(notes)
+                    repository.restore(notes)
                 }.onSuccess {
                     Toast.makeText(
                         context,
@@ -112,7 +120,9 @@ fun FlowNavHost(
     }
 
     val flowFireModel: FlowFireModel = viewModel(
-        factory = FlowFireModelFactory(repository)
+        factory = FlowFireModelFactory(
+            repository = repository
+        )
     )
 
     val uiState by flowFireModel.uiState.collectAsStateWithLifecycle()
@@ -349,11 +359,25 @@ fun FlowNavHost(
             val isNew =
                 entry.arguments?.getBoolean("new") ?: false
 
+            var attachments by remember(
+                routeEntryId,
+                isNew
+            ) {
+                mutableStateOf<List<Attachment>>(emptyList())
+            }
+
             var currentEntry by remember(
                 routeEntryId,
                 isNew
             ) {
                 mutableStateOf<EntryUiModel?>(null)
+            }
+
+            var entryPersisted by remember(
+                routeEntryId,
+                isNew
+            ) {
+                mutableStateOf(!isNew)
             }
 
             var skipSaveOnDispose by remember {
@@ -379,29 +403,75 @@ fun FlowNavHost(
                 }
             }
 
+            LaunchedEffect(currentEntry?.id) {
+                val entryId =
+                    currentEntry?.id
+                        ?: return@LaunchedEffect
+
+                repository
+                    .observeAttachments(entryId)
+                    .collect { currentAttachments ->
+                        attachments = currentAttachments
+                    }
+            }
+
+            val latestEntry by rememberUpdatedState(currentEntry)
+
+            val latestSkipSaveOnDispose by rememberUpdatedState(
+                skipSaveOnDispose
+            )
+
+            val latestAttachments by rememberUpdatedState(
+                attachments
+            )
+
+            val latestEntryPersisted by rememberUpdatedState(
+                entryPersisted
+            )
+
             DisposableEffect(Unit) {
                 onDispose {
-                    if (skipSaveOnDispose) {
+                    if (latestSkipSaveOnDispose) {
                         return@onDispose
                     }
 
                     val entryToSave =
-                        currentEntry ?: return@onDispose
+                        latestEntry
+                            ?: return@onDispose
 
-                    if (isNew) {
-                        if (entryToSave.text.isNotBlank()) {
-                            flowFireModel.saveNewEntry(entryToSave)
+                    if (isNew && !latestEntryPersisted) {
+                        if (
+                            entryToSave.text.isNotBlank() ||
+                            latestAttachments.isNotEmpty()
+                        ) {
+                            flowFireModel.saveNewEntry(
+                                entryToSave
+                            )
+
                             shouldScrollHomeToTop = true
                         }
-                    } else {
-                        flowFireModel.updateEntry(entryToSave)
+
+                        return@onDispose
                     }
+
+                    if (
+                        entryToSave.text.isBlank() &&
+                        latestAttachments.isEmpty()
+                    ) {
+                        return@onDispose
+                    }
+
+                    flowFireModel.updateEntry(
+                        entry = entryToSave,
+                        hasAttachments = latestAttachments.isNotEmpty()
+                    )
                 }
             }
 
             currentEntry?.let { entry ->
                 EditorScreen(
                     entry = entry,
+                    attachments = attachments,
                     autoFocus = isNew,
                     uiFont = uiFont,
                     editorFont = editorFont,
@@ -430,9 +500,18 @@ fun FlowNavHost(
                         skipSaveOnDispose = true
 
                         if (isNew) {
+                            if (entryPersisted) {
+                                flowFireModel.deleteEntry(
+                                    entryToDelete
+                                )
+                            }
+
                             navController.popBackStack()
                         } else {
-                            flowFireModel.deleteEntry(entryToDelete)
+                            flowFireModel.deleteEntry(
+                                entryToDelete
+                            )
+
                             navController.popBackStack()
                         }
                     },
@@ -447,22 +526,83 @@ fun FlowNavHost(
                                 type =
                                     if (
                                         entry.type ==
-                                        dev.jvqtil.flow.data.ENTRY_TYPE_TASK
+                                        ENTRY_TYPE_TASK
                                     ) {
-                                        dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
+                                        ENTRY_TYPE_NOTE
                                     } else {
-                                        dev.jvqtil.flow.data.ENTRY_TYPE_TASK
+                                        ENTRY_TYPE_TASK
                                     },
                                 completed =
                                     if (
                                         entry.type ==
-                                        dev.jvqtil.flow.data.ENTRY_TYPE_TASK
+                                        ENTRY_TYPE_TASK
                                     ) {
                                         false
                                     } else {
                                         entry.completed
                                     }
                             )
+                    },
+
+                    onAddAttachment = { uriStrings ->
+                        scope.launch {
+                            val entryToSave =
+                                currentEntry
+                                    ?: return@launch
+
+                            if (isNew && !entryPersisted) {
+                                flowFireModel.ensureEntryExists(
+                                    entryToSave
+                                )
+
+                                entryPersisted = true
+                            }
+
+                            flowFireModel.addAttachments(
+                                entryId = entryToSave.id,
+                                uris = uriStrings.map(Uri::parse)
+                            )
+                        }
+                    },
+
+                    onDeleteAttachment = { attachment ->
+                        flowFireModel.deleteAttachment(
+                            attachment
+                        )
+                    },
+
+                    onOpenAttachment = { attachment ->
+                        runCatching {
+                            val file = attachmentStorage.getFile(
+                                attachment.path
+                            )
+
+                            val uri = androidx.core.content.FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.fileprovider",
+                                file
+                            )
+
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(
+                                    uri,
+                                    attachment.mimeType ?: "*/*"
+                                )
+                                addFlags(
+                                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                )
+                            }
+
+                            context.startActivity(intent)
+                        }.onFailure { error ->
+                            error.printStackTrace()
+
+                            Toast.makeText(
+                                context,
+                                "Unable to open file",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 )
             }

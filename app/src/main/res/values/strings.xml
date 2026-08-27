@@ -14,6 +14,7 @@
     <string name="completed_label">Completed</string>
     <string name="convert_to_task_label">Convert to task</string>
     <string name="convert_to_note_label">Convert to note</string>
+    <string name="attach_file_label">Attach file</string>
 
     <string name="appearance_label">Appearance</string>
     <string name="pure_black_label" translatable="false">Pure black</string>

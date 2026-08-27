@@ -55,6 +55,35 @@ private val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+
+    override suspend fun migrate(
+        connection: androidx.sqlite.SQLiteConnection
+    ) {
+        connection.execSQL(
+            """
+            CREATE TABLE attachments (
+                id TEXT NOT NULL,
+                entryId TEXT NOT NULL,
+                path TEXT NOT NULL,
+                fileName TEXT NOT NULL,
+                mimeType TEXT,
+                size INTEGER NOT NULL,
+                createdAt INTEGER NOT NULL,
+                PRIMARY KEY(id)
+            )
+            """.trimIndent()
+        )
+
+        connection.execSQL(
+            """
+            CREATE INDEX index_attachments_entryId
+            ON attachments(entryId)
+            """.trimIndent()
+        )
+    }
+}
+
 object DatabaseProvider {
 
     @Volatile
@@ -67,7 +96,11 @@ object DatabaseProvider {
                 FlowDatabase::class.java,
                 "flow.db"
             )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3,
+                    MIGRATION_3_4
+                )
                 .build()
                 .also {
                     instance = it

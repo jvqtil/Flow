@@ -1,8 +1,10 @@
 package dev.jvqtil.flow.ui
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dev.jvqtil.flow.data.Attachment
 import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.data.Entry
@@ -46,7 +48,7 @@ class FlowFireModel(
     ): EntryUiModel? {
         return databaseMutex.withLock {
             repository
-                .getEntry(id)
+                .findById(id)
                 ?.let(::toUiModel)
         }
     }
@@ -56,6 +58,22 @@ class FlowFireModel(
             id = UUID.randomUUID().toString(),
             text = ""
         )
+    }
+
+    suspend fun ensureEntryExists(
+        entry: EntryUiModel
+    ) {
+        databaseMutex.withLock {
+            if (repository.findById(entry.id) != null) {
+                return@withLock
+            }
+
+            repository.insertAtTop(
+                entry.copy(
+                    text = trimEmptyLines(entry.text)
+                ).toDataModel()
+            )
+        }
     }
 
     fun saveNewEntry(
@@ -79,7 +97,8 @@ class FlowFireModel(
     }
 
     fun updateEntry(
-        entry: EntryUiModel
+        entry: EntryUiModel,
+        hasAttachments: Boolean
     ) {
         val normalizedEntry = entry.copy(
             text = trimEmptyLines(entry.text)
@@ -88,15 +107,18 @@ class FlowFireModel(
         viewModelScope.launch {
             databaseMutex.withLock {
                 val existing =
-                    repository.getEntry(normalizedEntry.id)
+                    repository.findById(normalizedEntry.id)
                         ?: return@withLock
 
-                if (normalizedEntry.text.isBlank()) {
+                if (
+                    normalizedEntry.text.isBlank() &&
+                    !hasAttachments
+                ) {
                     deleteExistingEntry(existing)
                     return@withLock
                 }
 
-                repository.updateEntry(
+                repository.update(
                     normalizedEntry.toDataModel(
                         createdAt = existing.createdAt,
                         position = existing.position
@@ -122,7 +144,7 @@ class FlowFireModel(
         viewModelScope.launch {
             databaseMutex.withLock {
                 val existing =
-                    repository.getEntry(entry.id)
+                    repository.findById(entry.id)
                         ?: return@withLock
 
                 deleteExistingEntry(existing)
@@ -133,7 +155,7 @@ class FlowFireModel(
     private suspend fun deleteExistingEntry(
         entry: Entry
     ) {
-        repository.deleteEntry(entry)
+        repository.delete(entry)
 
         _uiState.update {
             it.copy(
@@ -155,7 +177,7 @@ class FlowFireModel(
                     _uiState.value.undoEntry
                         ?: return@withLock
 
-                repository.restoreEntry(entry)
+                repository.restore(entry)
 
                 _uiState.update {
                     it.copy(
@@ -172,10 +194,20 @@ class FlowFireModel(
     }
 
     fun clearDeletedEntry() {
-        _uiState.update {
-            it.copy(
-                undoEntry = null
-            )
+        viewModelScope.launch {
+            databaseMutex.withLock {
+                val entry =
+                    _uiState.value.undoEntry
+                        ?: return@withLock
+
+                repository.purgeAttachments(entry.id)
+
+                _uiState.update {
+                    it.copy(
+                        undoEntry = null
+                    )
+                }
+            }
         }
     }
 
@@ -206,14 +238,14 @@ class FlowFireModel(
         viewModelScope.launch {
             databaseMutex.withLock {
                 val existing =
-                    repository.getEntry(entryId)
+                    repository.findById(entryId)
                         ?: return@withLock
 
                 if (existing.type != ENTRY_TYPE_TASK) {
                     return@withLock
                 }
 
-                repository.updateEntry(
+                repository.update(
                     existing.copy(
                         completed = !existing.completed
                     )
@@ -228,7 +260,7 @@ class FlowFireModel(
         viewModelScope.launch {
             databaseMutex.withLock {
                 val existing =
-                    repository.getEntry(entryId)
+                    repository.findById(entryId)
                         ?: return@withLock
 
                 val newType =
@@ -238,7 +270,7 @@ class FlowFireModel(
                         ENTRY_TYPE_TASK
                     }
 
-                repository.updateEntry(
+                repository.update(
                     existing.copy(
                         type = newType,
                         completed =
@@ -248,6 +280,36 @@ class FlowFireModel(
                                 false
                             }
                     )
+                )
+            }
+        }
+    }
+
+    suspend fun addAttachments(
+        entryId: String,
+        uris: List<Uri>
+    ) {
+        databaseMutex.withLock {
+            if (repository.findById(entryId) == null) {
+                return@withLock
+            }
+
+            uris.forEach { uri ->
+                repository.insertAttachment(
+                    entryId = entryId,
+                    uri = uri
+                )
+            }
+        }
+    }
+
+    fun deleteAttachment(
+        attachment: Attachment
+    ) {
+        viewModelScope.launch {
+            databaseMutex.withLock {
+                repository.deleteAttachment(
+                    attachment
                 )
             }
         }
@@ -288,7 +350,9 @@ class FlowFireModelFactory(
         modelClass: Class<T>
     ): T {
         if (modelClass.isAssignableFrom(FlowFireModel::class.java)) {
-            return FlowFireModel(repository) as T
+            return FlowFireModel(
+                repository = repository
+            ) as T
         }
 
         throw IllegalArgumentException(
