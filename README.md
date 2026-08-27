@@ -1,4 +1,7 @@
-# Flow
+<h1>
+  <img src="assets/flow-logo.svg" width="36" alt="">
+  Flow
+</h1>
 
 Notes & Tasks app for Android. Fully native. Just your stuff, no bullshit
 
