@@ -48,8 +48,8 @@
 
     <string-array name="editor_placeholders">
         <item>Есть идеи?</item>
-        <item>Ещё одна идея для B2B SaaS?</item>
-        <item>Claude не помог, пологаю...</item>
+        <item>Ещё одна идея B2B SaaS?</item>
+        <item>Claude не помог, полагаю...</item>
         <item>Всё остаётся локально (к счастью)</item>
     </string-array>
 
