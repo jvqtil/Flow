@@ -15,5 +15,6 @@ data class Entry(
     val createdAt: Long = System.currentTimeMillis(),
     val position: Long = 0L,
     val type: String = ENTRY_TYPE_NOTE,
-    val completed: Boolean = false
+    val completed: Boolean = false,
+    val listId: String = ALL_LIST_ID
 )

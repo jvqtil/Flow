@@ -29,9 +29,11 @@ class MainActivity : ComponentActivity() {
 
         val repository =
             FlowRepository(
-                database.entryDao(),
-                database.attachmentDao(),
-                attachmentStorage
+                database = database,
+                entryDao = database.entryDao(),
+                entryListDao = database.entryListDao(),
+                attachmentDao = database.attachmentDao(),
+                attachmentStorage = attachmentStorage
             )
 
         setContent {

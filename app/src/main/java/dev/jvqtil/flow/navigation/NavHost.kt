@@ -31,11 +31,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import dev.jvqtil.flow.data.ALL_LIST_ID
 import dev.jvqtil.flow.data.AppPreferences
 import dev.jvqtil.flow.data.Attachment
 import dev.jvqtil.flow.data.AttachmentStorage
 import dev.jvqtil.flow.data.BackupManager
-import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.data.FlowRepository
 import dev.jvqtil.flow.ui.EntryUiModel
@@ -58,104 +58,132 @@ fun FlowNavHost(
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
 
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument(
-            "application/json"
-        )
-    ) { uri ->
-        if (uri != null) {
-            scope.launch {
-                runCatching {
-                    val notes = repository.getAllEntries()
+    val exportLauncher =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.CreateDocument(
+                    "application/json"
+                )
+        ) { uri ->
+            if (uri != null) {
+                scope.launch {
+                    runCatching {
+                        val entries =
+                            repository.getAllEntries()
 
-                    BackupManager.exportNotes(
-                        context = context,
-                        uri = uri,
-                        entries = notes
-                    )
-                }.onSuccess {
-                    Toast.makeText(
-                        context,
-                        "Notes exported",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }.onFailure {
-                    Toast.makeText(
-                        context,
-                        "Export failed",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                        val lists =
+                            repository.getAllLists()
+
+                        BackupManager.exportNotes(
+                            context = context,
+                            uri = uri,
+                            entries = entries,
+                            lists = lists
+                        )
+                    }.onSuccess {
+                        Toast.makeText(
+                            context,
+                            "Notes exported",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }.onFailure {
+                        Toast.makeText(
+                            context,
+                            "Export failed",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
         }
-    }
 
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            scope.launch {
-                runCatching {
-                    val notes = BackupManager.importNotes(
-                        context = context,
-                        uri = uri
-                    )
+    val importLauncher =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            if (uri != null) {
+                scope.launch {
+                    runCatching {
+                        val backup =
+                            BackupManager.importNotes(
+                                context = context,
+                                uri = uri
+                            )
 
-                    repository.restore(notes)
-                }.onSuccess {
-                    Toast.makeText(
-                        context,
-                        "Notes imported",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }.onFailure {
-                    Toast.makeText(
-                        context,
-                        "Import failed",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                        backup.lists.forEach { list ->
+                            repository.restoreList(
+                                list
+                            )
+                        }
+
+                        repository.restore(
+                            backup.entries
+                        )
+                    }.onSuccess {
+                        Toast.makeText(
+                            context,
+                            "Notes imported",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }.onFailure {
+                        Toast.makeText(
+                            context,
+                            "Import failed",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
         }
-    }
 
-    val flowFireModel: FlowFireModel = viewModel(
-        factory = FlowFireModelFactory(
-            repository = repository
+    val flowFireModel: FlowFireModel =
+        viewModel(
+            factory =
+                FlowFireModelFactory(
+                    repository = repository
+                )
         )
-    )
 
-    val uiState by flowFireModel.uiState.collectAsStateWithLifecycle()
+    val uiState by
+    flowFireModel
+        .uiState
+        .collectAsStateWithLifecycle()
 
     var shouldScrollHomeToTop by remember {
         mutableStateOf(false)
     }
 
-    val amoled by AppPreferences
+    val amoled by
+    AppPreferences
         .observeAmoled(context)
         .collectAsStateWithLifecycle(
             initialValue = false
         )
 
-    val uiFont by AppPreferences
+    val uiFont by
+    AppPreferences
         .observeUiFont(context)
         .collectAsStateWithLifecycle(
             initialValue = UiFont.DEFAULT
         )
 
-    val editorFont by AppPreferences
+    val editorFont by
+    AppPreferences
         .observeEditorFont(context)
         .collectAsStateWithLifecycle(
             initialValue = EditorFont.UI_FONT
         )
 
-    val previewLines by AppPreferences
+    val previewLines by
+    AppPreferences
         .observePreviewLines(context)
         .collectAsStateWithLifecycle(
             initialValue = 4
         )
 
-    val keyboardMode by AppPreferences
+    val keyboardMode by
+    AppPreferences
         .observeKeyboardMode(context)
         .collectAsStateWithLifecycle(
             initialValue = KeyboardMode.NORMAL
@@ -203,33 +231,86 @@ fun FlowNavHost(
         }
     ) {
         composable(HOME_ROUTE) {
+            val visibleEntries =
+                if (
+                    uiState.selectedListId ==
+                    ALL_LIST_ID
+                ) {
+                    uiState.entries
+                } else {
+                    uiState.entries.filter {
+                        it.listId ==
+                                uiState.selectedListId
+                    }
+                }
+
             HomeScreen(
-                entries = uiState.entries,
+                entries = visibleEntries,
+                lists = uiState.lists,
+                selectedListId =
+                    uiState.selectedListId,
                 previewLines = previewLines,
-                shouldScrollToTop = shouldScrollHomeToTop,
+                shouldScrollToTop =
+                    shouldScrollHomeToTop,
                 onScrollToTopHandled = {
                     shouldScrollHomeToTop = false
                 },
                 pendingDeletedEntries =
                     uiState.pendingDeletedEntries,
-                undoEntry = uiState.undoEntry,
-                restoringEntryId = uiState.restoringEntryId,
-                deletingEntriesIds = uiState.deletingEntriesIds,
+                undoOperation =
+                    uiState.undoOperation,
+                restoringEntryId =
+                    uiState.restoringEntryId,
+                deletingEntriesIds =
+                    uiState.deletingEntriesIds,
+
+                onSelectList = { listId ->
+                    flowFireModel.selectList(
+                        listId
+                    )
+                },
+
+                onCreateList = { name ->
+                    flowFireModel.createList(
+                        name
+                    )
+                },
+
+                onRenameList = { id, name ->
+                    flowFireModel.renameList(
+                        listId = id,
+                        name = name
+                    )
+                },
+
+                onDeleteList = { id ->
+                    flowFireModel.deleteList(
+                        id
+                    )
+                },
 
                 onUndo = {
                     flowFireModel.undoDelete()
                 },
 
                 onUndoTimeout = {
-                    flowFireModel.clearDeletedEntry()
+                    flowFireModel.clearUndo()
                 },
 
                 onAnimationFinished = { id ->
-                    if (uiState.deletingEntriesIds.contains(id)) {
-                        flowFireModel.clearDeletedAnimation(id)
+                    if (
+                        uiState.deletingEntriesIds
+                            .contains(id)
+                    ) {
+                        flowFireModel.clearDeletedAnimation(
+                            id
+                        )
                     }
 
-                    if (uiState.restoringEntryId == id) {
+                    if (
+                        uiState.restoringEntryId ==
+                        id
+                    ) {
                         flowFireModel.clearRestoringEntry()
                     }
                 },
@@ -248,25 +329,33 @@ fun FlowNavHost(
 
                 onDeleteEntry = { id ->
                     uiState.entries
-                        .firstOrNull { it.id == id }
-                        ?.let { note ->
-                            flowFireModel.deleteEntry(note)
+                        .firstOrNull {
+                            it.id == id
+                        }
+                        ?.let { entry ->
+                            flowFireModel.deleteEntry(
+                                entry
+                            )
                         }
                 },
 
                 onOpenSettings = {
-                    navController.navigate(SETTINGS_ROUTE)
+                    navController.navigate(
+                        SETTINGS_ROUTE
+                    )
                 },
 
-                onReorderEntries = { noteIds ->
-                    flowFireModel.updateEntriesPositions(noteIds)
+                onReorderEntries = { entryIds ->
+                    flowFireModel.updateEntriesPositions(
+                        entryIds
+                    )
                 },
 
                 onToggleCompleted =
                     flowFireModel::toggleCompleted,
 
                 onToggleTaskNote =
-                    flowFireModel::toggleTaskNote,
+                    flowFireModel::toggleTaskNote
             )
         }
 
@@ -323,8 +412,11 @@ fun FlowNavHost(
                 },
 
                 onExport = {
-                    exportLauncher.launch("flow-backup.json")
+                    exportLauncher.launch(
+                        "flow-backup.json"
+                    )
                 },
+
                 onImport = {
                     importLauncher.launch(
                         arrayOf(
@@ -334,6 +426,7 @@ fun FlowNavHost(
                         )
                     )
                 },
+
                 onBack = {
                     navController.popBackStack()
                 }
@@ -341,7 +434,8 @@ fun FlowNavHost(
         }
 
         composable(
-            route = "$EDITOR_ROUTE/{$ENTRY_ID}?new={new}",
+            route =
+                "$EDITOR_ROUTE/{$ENTRY_ID}?new={new}",
             arguments = listOf(
                 navArgument(ENTRY_ID) {
                     type = NavType.StringType
@@ -351,26 +445,35 @@ fun FlowNavHost(
                     defaultValue = false
                 }
             )
-        ) { entry ->
+        ) { entryBackStackEntry ->
 
             val routeEntryId =
-                entry.arguments?.getString(ENTRY_ID)
+                entryBackStackEntry
+                    .arguments
+                    ?.getString(ENTRY_ID)
 
             val isNew =
-                entry.arguments?.getBoolean("new") ?: false
+                entryBackStackEntry
+                    .arguments
+                    ?.getBoolean("new")
+                    ?: false
 
             var attachments by remember(
                 routeEntryId,
                 isNew
             ) {
-                mutableStateOf<List<Attachment>>(emptyList())
+                mutableStateOf<List<Attachment>>(
+                    emptyList()
+                )
             }
 
             var currentEntry by remember(
                 routeEntryId,
                 isNew
             ) {
-                mutableStateOf<EntryUiModel?>(null)
+                mutableStateOf<EntryUiModel?>(
+                    null
+                )
             }
 
             var entryPersisted by remember(
@@ -388,22 +491,28 @@ fun FlowNavHost(
                 routeEntryId,
                 isNew
             ) {
-                currentEntry = when {
-                    isNew -> {
-                        flowFireModel.createEntry()
-                    }
+                currentEntry =
+                    when {
+                        isNew -> {
+                            flowFireModel.createEntry()
+                        }
 
-                    !routeEntryId.isNullOrBlank() -> {
-                        flowFireModel.getEntry(routeEntryId)
-                    }
+                        !routeEntryId
+                            .isNullOrBlank() -> {
+                            flowFireModel.getEntry(
+                                routeEntryId
+                            )
+                        }
 
-                    else -> {
-                        null
+                        else -> {
+                            null
+                        }
                     }
-                }
             }
 
-            LaunchedEffect(currentEntry?.id) {
+            LaunchedEffect(
+                currentEntry?.id
+            ) {
                 val entryId =
                     currentEntry?.id
                         ?: return@LaunchedEffect
@@ -411,27 +520,36 @@ fun FlowNavHost(
                 repository
                     .observeAttachments(entryId)
                     .collect { currentAttachments ->
-                        attachments = currentAttachments
+                        attachments =
+                            currentAttachments
                     }
             }
 
-            val latestEntry by rememberUpdatedState(currentEntry)
+            val latestEntry by
+            rememberUpdatedState(
+                currentEntry
+            )
 
-            val latestSkipSaveOnDispose by rememberUpdatedState(
+            val latestSkipSaveOnDispose by
+            rememberUpdatedState(
                 skipSaveOnDispose
             )
 
-            val latestAttachments by rememberUpdatedState(
+            val latestAttachments by
+            rememberUpdatedState(
                 attachments
             )
 
-            val latestEntryPersisted by rememberUpdatedState(
+            val latestEntryPersisted by
+            rememberUpdatedState(
                 entryPersisted
             )
 
             DisposableEffect(Unit) {
                 onDispose {
-                    if (latestSkipSaveOnDispose) {
+                    if (
+                        latestSkipSaveOnDispose
+                    ) {
                         return@onDispose
                     }
 
@@ -439,16 +557,22 @@ fun FlowNavHost(
                         latestEntry
                             ?: return@onDispose
 
-                    if (isNew && !latestEntryPersisted) {
+                    if (
+                        isNew &&
+                        !latestEntryPersisted
+                    ) {
                         if (
-                            entryToSave.text.isNotBlank() ||
-                            latestAttachments.isNotEmpty()
+                            entryToSave.text
+                                .isNotBlank() ||
+                            latestAttachments
+                                .isNotEmpty()
                         ) {
                             flowFireModel.saveNewEntry(
                                 entryToSave
                             )
 
-                            shouldScrollHomeToTop = true
+                            shouldScrollHomeToTop =
+                                true
                         }
 
                         return@onDispose
@@ -458,13 +582,18 @@ fun FlowNavHost(
                         entryToSave.text.isBlank() &&
                         latestAttachments.isEmpty()
                     ) {
-                        flowFireModel.deleteEntry(entryToSave)
+                        flowFireModel.deleteEntry(
+                            entryToSave
+                        )
+
                         return@onDispose
                     }
 
                     flowFireModel.updateEntry(
                         entry = entryToSave,
-                        hasAttachments = latestAttachments.isNotEmpty()
+                        hasAttachments =
+                            latestAttachments
+                                .isNotEmpty()
                     )
                 }
             }
@@ -473,22 +602,21 @@ fun FlowNavHost(
                 EditorScreen(
                     entry = entry,
                     attachments = attachments,
+                    lists = uiState.lists,
+                    selectedListId = entry.listId,
                     autoFocus = isNew,
                     uiFont = uiFont,
                     editorFont = editorFont,
                     keyboardMode = keyboardMode,
-
                     onBack = {
                         navController.popBackStack()
                     },
-
                     onTextChange = { text ->
                         currentEntry =
                             currentEntry?.copy(
                                 text = text
                             )
                     },
-
                     onDelete = {
                         val entryToDelete =
                             currentEntry
@@ -506,17 +634,23 @@ fun FlowNavHost(
                                     entryToDelete
                                 )
                             }
-
-                            navController.popBackStack()
                         } else {
                             flowFireModel.deleteEntry(
                                 entryToDelete
                             )
-
-                            navController.popBackStack()
                         }
-                    },
 
+                        navController.popBackStack()
+                    },
+                    onSelectList = { listId ->
+                        currentEntry =
+                            currentEntry?.copy(
+                                listId = listId
+                            )
+                    },
+                    onCreateList = { name ->
+                        flowFireModel.createList(name)
+                    },
                     onToggleTaskNote = {
                         flowFireModel.toggleTaskNote(
                             entry.id
@@ -529,7 +663,8 @@ fun FlowNavHost(
                                         entry.type ==
                                         ENTRY_TYPE_TASK
                                     ) {
-                                        ENTRY_TYPE_NOTE
+                                        dev.jvqtil.flow.data
+                                            .ENTRY_TYPE_NOTE
                                     } else {
                                         ENTRY_TYPE_TASK
                                     },
@@ -544,14 +679,16 @@ fun FlowNavHost(
                                     }
                             )
                     },
-
                     onAddAttachment = { uriStrings ->
                         scope.launch {
                             val entryToSave =
                                 currentEntry
                                     ?: return@launch
 
-                            if (isNew && !entryPersisted) {
+                            if (
+                                isNew &&
+                                !entryPersisted
+                            ) {
                                 flowFireModel.ensureEntryExists(
                                     entryToSave
                                 )
@@ -565,39 +702,43 @@ fun FlowNavHost(
                             )
                         }
                     },
-
                     onDeleteAttachment = { attachment ->
                         flowFireModel.deleteAttachment(
                             attachment
                         )
                     },
-
                     onOpenAttachment = { attachment ->
                         runCatching {
-                            val file = attachmentStorage.getFile(
-                                attachment.path
-                            )
-
-                            val uri = androidx.core.content.FileProvider.getUriForFile(
-                                context,
-                                "${context.packageName}.fileprovider",
-                                file
-                            )
-
-                            val intent = Intent(Intent.ACTION_VIEW).apply {
-                                setDataAndType(
-                                    uri,
-                                    attachment.mimeType ?: "*/*"
+                            val file =
+                                attachmentStorage.getFile(
+                                    attachment.path
                                 )
-                                addFlags(
-                                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                )
-                            }
+
+                            val uri =
+                                androidx.core.content
+                                    .FileProvider
+                                    .getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        file
+                                    )
+
+                            val intent =
+                                Intent(
+                                    Intent.ACTION_VIEW
+                                ).apply {
+                                    setDataAndType(
+                                        uri,
+                                        attachment.mimeType ?: "*/*"
+                                    )
+
+                                    addFlags(
+                                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    )
+                                }
 
                             context.startActivity(intent)
-                        }.onFailure { error ->
-                            error.printStackTrace()
-
+                        }.onFailure {
                             Toast.makeText(
                                 context,
                                 "Unable to open file",

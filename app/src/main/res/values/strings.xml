@@ -2,55 +2,52 @@
 
     <string name="app_name" translatable="false">Flow</string>
 
-    <string name="settings_label">Settings</string>
-    <string name="no_notes_yet_label">No notes yet</string>
     <string name="add_note_label">Add note</string>
-    <string name="undo_label">Undo</string>
-
-    <string name="back_label">Back</string>
-    <string name="delete_label">Delete</string>
-    <string name="note_label">Note</string>
-    <string name="task_label">Task</string>
-    <string name="completed_label">Completed</string>
-    <string name="convert_to_task_label">Convert to task</string>
-    <string name="convert_to_note_label">Convert to note</string>
-    <string name="attach_file_label">Attach file</string>
-
+    <string name="all_list_label">All</string>
     <string name="appearance_label">Appearance</string>
-    <string name="pure_black_label" translatable="false">Pure black</string>
-    <string name="pure_black_description">For AMOLED displays · Dark mode only</string>
-
-    <string name="fonts_label">Fonts</string>
-    <string name="ui_label">UI</string>
-    <string name="editor_label">Editor</string>
-
+    <string name="attach_file_label">Attach file</string>
+    <string name="back_label">Back</string>
+    <string name="backup_restore_label">Backup &amp; Restore</string>
+    <string name="code_label" translatable="false">Code</string>
+    <string name="completed_label">Completed</string>
+    <string name="convert_to_note_label">Convert to note</string>
+    <string name="convert_to_task_label">Convert to task</string>
+    <string name="create_label">Create</string>
     <string name="default_font">Default</string>
-    <string name="ui_font_font">UI Font</string>
-    <string name="serif_font" translatable="false">Serif</string>
-    <string name="monospace_font" translatable="false">Monospace</string>
+    <string name="delete_label">Delete</string>
+    <string name="editor_label">Editor</string>
+    <string name="export_failed_label">Export failed</string>
+    <string name="export_label">Export</string>
+    <string name="fonts_label">Fonts</string>
+    <string name="import_failed_label">Import failed</string>
+    <string name="import_label">Import</string>
     <string name="jetbrains_mono_font" translatable="false">JetBrains Mono</string>
-
+    <string name="keyboard_label">Keyboard</string>
+    <string name="monospace_font" translatable="false">Monospace</string>
+    <string name="new_list_label">New list</string>
+    <string name="no_notes_yet_label">No notes yet</string>
+    <string name="normal_label">Normal</string>
+    <string name="note_label">Note</string>
+    <string name="notes_exported_label">Notes exported</string>
+    <string name="notes_imported_label">Notes imported</string>
+    <string name="placeholder_name">Name</string>
     <string name="preview_label">Preview</string>
     <plurals name="preview_lines">
         <item quantity="one">%1$d line</item>
         <item quantity="other">%1$d lines</item>
     </plurals>
-
-    <string name="keyboard_label">Keyboard</string>
-    <string name="normal_label">Normal</string>
-    <string name="code_label" translatable="false">Code</string>
-
-    <string name="backup_restore_label">Backup &amp; Restore</string>
-    <string name="export_label">Export</string>
-    <string name="import_label">Import</string>
-
+    <string name="pure_black_label" translatable="false">Pure black</string>
+    <string name="pure_black_description">For AMOLED displays · Dark mode only</string>
+    <string name="rename_label">Rename</string>
+    <string name="rename_list_label">Rename list</string>
+    <string name="serif_font" translatable="false">Serif</string>
+    <string name="settings_label">Settings</string>
     <string name="source_code_label">Source Code</string>
-
-    <string name="notes_exported_label">Notes exported</string>
-    <string name="notes_imported_label">Notes imported</string>
-    <string name="export_failed_label">Export failed</string>
-    <string name="import_failed_label">Import failed</string>
-
+    <string name="switch_list_label">Move to list</string>
+    <string name="task_label">Task</string>
+    <string name="ui_font_font">UI Font</string>
+    <string name="ui_label">UI</string>
+    <string name="undo_label">Undo</string>
     <string-array name="editor_placeholders">
         <item>Any ideas?</item>
         <item>Another B2B SAAS idea?</item>

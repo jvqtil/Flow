@@ -84,6 +84,53 @@ private val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+private val MIGRATION_4_5 = object : Migration(4, 5) {
+
+    override suspend fun migrate(
+        connection: androidx.sqlite.SQLiteConnection
+    ) {
+        connection.execSQL(
+            """
+            CREATE TABLE lists (
+                id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                position INTEGER NOT NULL,
+                PRIMARY KEY(id)
+            )
+            """.trimIndent()
+        )
+
+        connection.execSQL(
+            """
+            INSERT INTO lists (
+                id,
+                name,
+                position
+            )
+            VALUES (
+                '$ALL_LIST_ID',
+                'All',
+                0
+            )
+            """.trimIndent()
+        )
+
+        connection.execSQL(
+            """
+            ALTER TABLE notes
+            ADD COLUMN listId TEXT NOT NULL DEFAULT '$ALL_LIST_ID'
+            """.trimIndent()
+        )
+
+        connection.execSQL(
+            """
+            UPDATE notes
+            SET listId = '$ALL_LIST_ID'
+            """.trimIndent()
+        )
+    }
+}
+
 object DatabaseProvider {
 
     @Volatile
@@ -99,7 +146,8 @@ object DatabaseProvider {
                 .addMigrations(
                     MIGRATION_1_2,
                     MIGRATION_2_3,
-                    MIGRATION_3_4
+                    MIGRATION_3_4,
+                    MIGRATION_4_5
                 )
                 .build()
                 .also {
