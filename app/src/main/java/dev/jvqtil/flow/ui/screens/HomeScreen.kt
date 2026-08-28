@@ -318,12 +318,14 @@ fun HomeScreen(
                                             !isRestoring &&
                                             !isDragging
                                         ) {
+                                            val entryIndex =
+                                                localEntries.indexOfFirst {
+                                                    it.id == entry.id
+                                                }
+
                                             deletedEntriesPositions =
                                                 deletedEntriesPositions + (
-                                                        entry.id to
-                                                                localEntries.indexOfFirst {
-                                                                    it.id == entry.id
-                                                                }
+                                                        entry.id to entryIndex
                                                         )
 
                                             closeActions()

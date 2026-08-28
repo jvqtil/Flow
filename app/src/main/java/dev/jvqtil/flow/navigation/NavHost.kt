@@ -458,6 +458,7 @@ fun FlowNavHost(
                         entryToSave.text.isBlank() &&
                         latestAttachments.isEmpty()
                     ) {
+                        flowFireModel.deleteEntry(entryToSave)
                         return@onDispose
                     }
 
