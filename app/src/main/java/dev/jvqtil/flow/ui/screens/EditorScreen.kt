@@ -41,10 +41,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +79,7 @@ import dev.jvqtil.flow.ui.models.KeyboardMode
 import dev.jvqtil.flow.ui.models.UiFont
 import dev.jvqtil.flow.ui.models.fontFamily
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
@@ -93,7 +96,7 @@ fun EditorScreen(
     onTextChange: (String) -> Unit,
     onDelete: () -> Unit,
     onSelectList: (String) -> Unit,
-    onCreateList: (String) -> Unit,
+    onCreateList: suspend (String) -> String?,
     onToggleTaskNote: () -> Unit,
     onAddAttachment: (List<String>) -> Unit,
     onOpenAttachment: (Attachment) -> Unit,
@@ -116,6 +119,9 @@ fun EditorScreen(
 
     val focusManager =
         LocalFocusManager.current
+
+    val scope =
+        rememberCoroutineScope()
 
     val density =
         LocalDensity.current
@@ -385,7 +391,9 @@ fun EditorScreen(
                         modifier =
                             Modifier
                                 .size(42.dp)
-                                .clickable {
+                                .clickable(
+                                    enabled = entry.text.isNotBlank()
+                                ) {
                                     attachmentLauncher.launch(
                                         arrayOf("*/*")
                                     )
@@ -399,7 +407,13 @@ fun EditorScreen(
                                     R.string.attach_file_label
                                 ),
                             tint =
-                                MaterialTheme.colorScheme.onBackground,
+                                if (entry.text.isNotBlank()) {
+                                    MaterialTheme.colorScheme.onBackground
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                        alpha = 0.4f
+                                    )
+                                },
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -558,9 +572,17 @@ fun EditorScreen(
                 val name = newListName.trim()
 
                 if (name.isNotBlank()) {
-                    onCreateList(name)
-                    newListName = ""
-                    showNewListSheet = false
+                    scope.launch {
+                        val listId =
+                            onCreateList(name)
+
+                        if (listId != null) {
+                            onSelectList(listId)
+                        }
+
+                        newListName = ""
+                        showNewListSheet = false
+                    }
                 }
             },
             onDismiss = {
@@ -568,6 +590,12 @@ fun EditorScreen(
                 showNewListSheet = false
             }
         )
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            deletedAttachment = null
+        }
     }
 
     deletedAttachment?.let { attachment ->

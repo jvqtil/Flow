@@ -36,6 +36,7 @@ import dev.jvqtil.flow.data.AppPreferences
 import dev.jvqtil.flow.data.Attachment
 import dev.jvqtil.flow.data.AttachmentStorage
 import dev.jvqtil.flow.data.BackupManager
+import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.data.FlowRepository
 import dev.jvqtil.flow.ui.EntryUiModel
@@ -271,9 +272,7 @@ fun FlowNavHost(
                 },
 
                 onCreateList = { name ->
-                    flowFireModel.createList(
-                        name
-                    )
+                    flowFireModel.createList(name)
                 },
 
                 onRenameList = { id, name ->
@@ -355,7 +354,10 @@ fun FlowNavHost(
                     flowFireModel::toggleCompleted,
 
                 onToggleTaskNote =
-                    flowFireModel::toggleTaskNote
+                    flowFireModel::toggleTaskNote,
+
+                onMoveEntryToList =
+                    flowFireModel::moveEntryToList
             )
         }
 
@@ -648,34 +650,35 @@ fun FlowNavHost(
                                 listId = listId
                             )
                     },
-                    onCreateList = { name ->
-                        flowFireModel.createList(name)
-                    },
+                    onCreateList = flowFireModel::createList,
                     onToggleTaskNote = {
+                        val current =
+                            currentEntry
+                                ?: return@EditorScreen
+
                         flowFireModel.toggleTaskNote(
-                            entry.id
+                            current.id
                         )
 
                         currentEntry =
-                            currentEntry?.copy(
+                            current.copy(
                                 type =
                                     if (
-                                        entry.type ==
+                                        current.type ==
                                         ENTRY_TYPE_TASK
                                     ) {
-                                        dev.jvqtil.flow.data
-                                            .ENTRY_TYPE_NOTE
+                                        ENTRY_TYPE_NOTE
                                     } else {
                                         ENTRY_TYPE_TASK
                                     },
                                 completed =
                                     if (
-                                        entry.type ==
+                                        current.type ==
                                         ENTRY_TYPE_TASK
                                     ) {
                                         false
                                     } else {
-                                        entry.completed
+                                        current.completed
                                     }
                             )
                     },
@@ -684,6 +687,10 @@ fun FlowNavHost(
                             val entryToSave =
                                 currentEntry
                                     ?: return@launch
+
+                            if (entryToSave.text.isBlank()) {
+                                return@launch
+                            }
 
                             if (
                                 isNew &&

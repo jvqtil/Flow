@@ -20,6 +20,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -76,6 +78,7 @@ fun EntryCard(
     onDelete: () -> Unit,
     onToggleCompleted: () -> Unit,
     onToggleTaskNote: () -> Unit,
+    onSwitchList: () -> Unit,
     onAnimationFinished: () -> Unit
 ) {
     val visibleState = remember(entry.id) {
@@ -92,7 +95,7 @@ fun EntryCard(
     }
 
     val taskToolbarWidth = 96.dp
-    val actionToolbarWidth = 64.dp
+    val actionToolbarWidth = 128.dp
 
     val taskToolbarWidthPx = with(density) {
         taskToolbarWidth.toPx()
@@ -280,30 +283,60 @@ fun EntryCard(
                 }
 
                 if (offsetX.value < -0.5f) {
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                offsetX.animateTo(
-                                    targetValue = 0f,
-                                    animationSpec = tween(180)
-                                )
-
-                                onDelete()
-                            }
-                        },
+                    Row(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
-                            .size(actionToolbarWidth)
+                            .width(actionToolbarWidth),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription =
-                                stringResource(
-                                    R.string.delete_label
-                                ),
-                            tint =
-                                MaterialTheme.colorScheme.error
-                        )
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    offsetX.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = tween(180)
+                                    )
+
+                                    onSwitchList()
+                                }
+                            },
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Folder,
+                                contentDescription =
+                                    stringResource(
+                                        R.string.switch_list_label
+                                    ),
+                                tint =
+                                    MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    offsetX.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = tween(180)
+                                    )
+
+                                    onDelete()
+                                }
+                            },
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription =
+                                    stringResource(
+                                        R.string.delete_label
+                                    ),
+                                tint =
+                                    MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                 }
             }

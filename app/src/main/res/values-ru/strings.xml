@@ -10,6 +10,7 @@
     <string name="convert_to_note_label">Преобразовать в заметку</string>
     <string name="convert_to_task_label">Преобразовать в задачу</string>
     <string name="create_label">Создать</string>
+    <string name="dark_mode_only_label">Только для тёмной темы</string>
     <string name="default_font">По умолчанию</string>
     <string name="delete_label">Удалить</string>
     <string name="editor_label">Редактор</string>
@@ -33,14 +34,14 @@
         <item quantity="many">%1$d строк</item>
         <item quantity="other">%1$d строки</item>
     </plurals>
-    <string name="pure_black_description">Для AMOLED-дисплеев · Только для тёмной темы</string>
+    <string name="pure_black_description">Для AMOLED-дисплеев</string>
     <string name="rename_label">Переименовать</string>
     <string name="rename_list_label">Переименовать список</string>
     <string name="settings_label">Настройки</string>
     <string name="source_code_label">Исходный код</string>
     <string name="switch_list_label">Сменить список</string>
     <string name="task_label">Задача</string>
-    <string name="ui_font_font">Шрифт интерфейса</string>
+    <string name="ui_font_font">Шрифт UI</string>
     <string name="ui_label">Интерфейс</string>
     <string name="undo_label">Отменить</string>
 

@@ -13,6 +13,7 @@
     <string name="convert_to_note_label">Convert to note</string>
     <string name="convert_to_task_label">Convert to task</string>
     <string name="create_label">Create</string>
+    <string name="dark_mode_only_label">Dark mode only</string>
     <string name="default_font">Default</string>
     <string name="delete_label">Delete</string>
     <string name="editor_label">Editor</string>
@@ -37,7 +38,7 @@
         <item quantity="other">%1$d lines</item>
     </plurals>
     <string name="pure_black_label" translatable="false">Pure black</string>
-    <string name="pure_black_description">For AMOLED displays · Dark mode only</string>
+    <string name="pure_black_description">For AMOLED displays</string>
     <string name="rename_label">Rename</string>
     <string name="rename_list_label">Rename list</string>
     <string name="serif_font" translatable="false">Serif</string>

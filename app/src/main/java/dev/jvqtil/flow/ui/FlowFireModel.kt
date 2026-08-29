@@ -83,22 +83,15 @@ class FlowFireModel(
                         it.position
                     }
 
-                val hasAll =
-                    sortedLists.any {
-                        it.id == ALL_LIST_ID
-                    }
-
                 val normalizedLists =
-                    if (hasAll) {
-                        sortedLists
-                    } else {
-                        listOf(
-                            EntryList(
-                                id = ALL_LIST_ID,
-                                name = "All",
-                                position = 0L
-                            )
-                        ) + sortedLists
+                    listOf(
+                        EntryList(
+                            id = ALL_LIST_ID,
+                            name = "All",
+                            position = Long.MIN_VALUE
+                        )
+                    ) + sortedLists.filter {
+                        it.id != ALL_LIST_ID
                     }
 
                 _uiState.update { state ->
@@ -126,90 +119,53 @@ class FlowFireModel(
         }
     }
 
-    fun createList(
+    suspend fun createList(
         name: String
-    ) {
+    ): String? {
         val normalizedName =
             name.trim()
 
-        if (
-            normalizedName.isBlank()
-        ) {
-            return
+        if (normalizedName.isBlank()) {
+            return null
         }
 
-        viewModelScope.launch {
-            databaseMutex.withLock {
+        return databaseMutex.withLock {
+            val lists =
+                repository.getAllLists()
 
-                val lists =
-                    repository.getAllLists()
+            val nextPosition =
+                (
+                        lists
+                            .filter {
+                                it.id != ALL_LIST_ID
+                            }
+                            .maxOfOrNull {
+                                it.position
+                            }
+                            ?: 0L
+                        ) + 1L
 
-                val nextPosition =
-                    (
-                            lists
-                                .filter {
-                                    it.id != ALL_LIST_ID
-                                }
-                                .maxOfOrNull {
-                                    it.position
-                                }
-                                ?: 0L
-                            ) + 1L
-
-                val list =
-                    EntryList(
-                        name = normalizedName,
-                        position = nextPosition
-                    )
-
-                repository.insertList(
-                    list
+            val list =
+                EntryList(
+                    name = normalizedName,
+                    position = nextPosition
                 )
 
-                _uiState.update {
-                    it.copy(
-                        selectedListId = list.id
-                    )
-                }
-            }
+            repository.insertList(
+                list
+            )
+
+            list.id
         }
     }
 
     fun selectList(
         listId: String
     ) {
-        if (
-            listId == ALL_LIST_ID
-        ) {
-            _uiState.update {
-                it.copy(
-                    selectedListId =
-                        ALL_LIST_ID
-                )
-            }
-
-            return
-        }
-
-        viewModelScope.launch {
-
-            val exists =
-                databaseMutex.withLock {
-                    repository.findListById(
-                        listId
-                    ) != null
-                }
-
-            if (!exists) {
-                return@launch
-            }
-
-            _uiState.update {
-                it.copy(
-                    selectedListId =
-                        listId
-                )
-            }
+        _uiState.update {
+            it.copy(
+                selectedListId = listId
+            )
         }
     }
 
@@ -454,8 +410,7 @@ class FlowFireModel(
         }
     }
 
-
-    suspend fun moveEntryToList(
+    fun moveEntryToList(
         entryId: String,
         targetListId: String
     ) {
@@ -463,26 +418,25 @@ class FlowFireModel(
             return
         }
 
-        databaseMutex.withLock {
-            val entry =
-                repository.findById(entryId)
-                    ?: return@withLock
+        viewModelScope.launch {
+            databaseMutex.withLock {
+                val entry =
+                    repository.findById(entryId)
+                        ?: return@withLock
 
-            val targetList =
-                repository.findListById(targetListId)
-                    ?: return@withLock
+                val targetList =
+                    repository.findListById(targetListId)
+                        ?: return@withLock
 
-            if (
-                entry.listId ==
-                targetList.id
-            ) {
-                return@withLock
+                if (entry.listId == targetList.id) {
+                    return@withLock
+                }
+
+                repository.moveEntryToList(
+                    entry = entry,
+                    targetListId = targetList.id
+                )
             }
-
-            repository.moveEntryToList(
-                entry = entry,
-                targetListId = targetList.id
-            )
         }
     }
 

@@ -11,12 +11,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -38,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,10 +57,12 @@ import dev.jvqtil.flow.ui.UndoOperation
 import dev.jvqtil.flow.ui.components.AddButton
 import dev.jvqtil.flow.ui.components.EntryCard
 import dev.jvqtil.flow.ui.components.ListActionsBottomSheet
+import dev.jvqtil.flow.ui.components.ListChoiceBottomSheet
 import dev.jvqtil.flow.ui.components.NewListBottomSheet
 import dev.jvqtil.flow.ui.components.RenameListBottomSheet
 import dev.jvqtil.flow.ui.components.UndoPopup
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.time.Duration.Companion.milliseconds
@@ -77,7 +80,7 @@ fun HomeScreen(
     restoringEntryId: String?,
     deletingEntriesIds: Set<String>,
     onSelectList: (String) -> Unit,
-    onCreateList: (String) -> Unit,
+    onCreateList: suspend (String) -> String?,
     onRenameList: (String, String) -> Unit,
     onDeleteList: (String) -> Unit,
     onUndo: () -> Unit,
@@ -89,9 +92,11 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onReorderEntries: (List<String>) -> Unit,
     onToggleCompleted: (String) -> Unit,
-    onToggleTaskNote: (String) -> Unit
+    onToggleTaskNote: (String) -> Unit,
+    onMoveEntryToList: (String, String) -> Unit
 ) {
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     var localEntries by remember {
         mutableStateOf(entries)
@@ -123,6 +128,18 @@ fun HomeScreen(
 
     var renameText by remember {
         mutableStateOf("")
+    }
+
+    var listEntryToSwitch by remember {
+        mutableStateOf<EntryUiModel?>(null)
+    }
+
+    var showListPicker by remember {
+        mutableStateOf(false)
+    }
+
+    var createListForMove by remember {
+        mutableStateOf(false)
     }
 
     val containerCornerRadius by animateDpAsState(
@@ -414,26 +431,7 @@ fun HomeScreen(
                     }
                 }
 
-            if (listEntries.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(
-                            top = 4.dp,
-                            bottom = 40.dp
-                        ),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = stringResource(
-                            R.string.no_notes_yet_label
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
+            if (listEntries.isNotEmpty()) {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -511,6 +509,11 @@ fun HomeScreen(
                                     }
                                 },
 
+                                onSwitchList = {
+                                    listEntryToSwitch = entry
+                                    showListPicker = true
+                                },
+
                                 onAnimationFinished = {
                                     deletedEntriesPositions =
                                         deletedEntriesPositions - entry.id
@@ -542,7 +545,8 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(20.dp)
+                .navigationBarsPadding()
+                .padding(16.dp)
         ) {
             AddButton(
                 onClick = {
@@ -603,18 +607,15 @@ fun HomeScreen(
 
         ListActionsBottomSheet(
             list = list,
-
             onRename = {
                 renameTarget = list
                 renameText = listName
                 listActionTarget = null
             },
-
             onDelete = {
                 listActionTarget = null
                 onDeleteList(list.id)
             },
-
             onDismiss = {
                 listActionTarget = null
             }
@@ -625,11 +626,9 @@ fun HomeScreen(
 
         RenameListBottomSheet(
             value = renameText,
-
             onValueChange = {
                 renameText = it
             },
-
             onSave = {
                 onRenameList(
                     list.id,
@@ -639,7 +638,6 @@ fun HomeScreen(
                 renameTarget = null
                 renameText = ""
             },
-
             onDismiss = {
                 renameTarget = null
                 renameText = ""
@@ -648,26 +646,84 @@ fun HomeScreen(
     }
 
     if (showNewListSheet) {
-
         NewListBottomSheet(
             value = newListName,
-
             onValueChange = {
                 newListName = it
             },
-
             onCreate = {
-                onCreateList(
-                    newListName.trim()
-                )
+                val name = newListName.trim()
 
-                newListName = ""
-                showNewListSheet = false
+                if (name.isNotBlank()) {
+                    scope.launch {
+                        val listId =
+                            onCreateList(name)
+
+                        if (listId != null) {
+                            if (createListForMove) {
+                                listEntryToSwitch?.let { entry ->
+                                    onMoveEntryToList(
+                                        entry.id,
+                                        listId
+                                    )
+                                }
+                            } else {
+                                onSelectList(listId)
+                            }
+                        }
+
+                        listEntryToSwitch = null
+                        createListForMove = false
+                        newListName = ""
+                        showNewListSheet = false
+                    }
+                }
             },
-
             onDismiss = {
                 newListName = ""
                 showNewListSheet = false
+                listEntryToSwitch = null
+                createListForMove = false
+            }
+        )
+    }
+
+    if (
+        showListPicker &&
+        listEntryToSwitch != null
+    ) {
+        ListChoiceBottomSheet(
+            lists = lists.filter {
+                it.id != ALL_LIST_ID
+            },
+            selectedListId =
+                listEntryToSwitch!!.listId,
+
+            onSelect = { listId ->
+                scope.launch {
+                    listEntryToSwitch?.let { entry ->
+                        onMoveEntryToList(
+                            entry.id,
+                            listId
+                        )
+                    }
+
+                    showListPicker = false
+                    listEntryToSwitch = null
+                }
+            },
+
+            onCreateList = {
+                showListPicker = false
+                createListForMove = true
+                newListName = ""
+                showNewListSheet = true
+            },
+
+            onDismiss = {
+                showListPicker = false
+                listEntryToSwitch = null
+                createListForMove = false
             }
         )
     }
