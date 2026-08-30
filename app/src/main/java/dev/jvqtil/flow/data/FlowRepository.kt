@@ -274,4 +274,8 @@ class FlowRepository(
             )
         }
     }
+
+    fun observeEntryIdsWithAttachments(): Flow<List<String>> {
+        return attachmentDao.observeEntryIdsWithAttachments()
+    }
 }

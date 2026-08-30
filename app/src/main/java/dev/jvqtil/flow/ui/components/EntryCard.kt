@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
@@ -491,6 +492,17 @@ fun EntryCard(
                         )
                     }
 
+                    if (entry.hasAttachments) {
+                        Icon(
+                            imageVector = Icons.Default.AttachFile,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .size(16.dp)
+                        )
+                    }
+
                     Text(
                         text = entry.text,
                         maxLines = previewLines,
@@ -500,7 +512,12 @@ fun EntryCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(
-                                start = textStartPadding
+                                start = textStartPadding,
+                                end = if (entry.hasAttachments) {
+                                    24.dp
+                                } else {
+                                    0.dp
+                                }
                             ),
                         onTextLayout = {
                             textLayoutResult = it

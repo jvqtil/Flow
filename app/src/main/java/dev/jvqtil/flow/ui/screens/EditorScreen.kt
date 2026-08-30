@@ -254,7 +254,7 @@ fun EditorScreen(
                     Box(
                         modifier = Modifier
                             .height(42.dp)
-                            .widthIn(max = 140.dp)
+                            .widthIn(max = 130.dp)
                             .background(
                                 MaterialTheme.colorScheme.surfaceContainer,
                                 RoundedCornerShape(16.dp)

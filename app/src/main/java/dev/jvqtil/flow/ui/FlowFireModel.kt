@@ -14,6 +14,7 @@ import dev.jvqtil.flow.data.MASTER_FOLDER_ID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -25,7 +26,8 @@ data class EntryUiModel(
     val text: String,
     val type: String = ENTRY_TYPE_NOTE,
     val completed: Boolean = false,
-    val folderId: String
+    val folderId: String,
+    val hasAttachments: Boolean = false
 )
 
 data class FolderUiModel(
@@ -33,7 +35,6 @@ data class FolderUiModel(
 )
 
 sealed interface UndoOperation {
-
     data class EntryDeleted(
         val entry: Entry
     ) : UndoOperation
@@ -56,7 +57,6 @@ data class FlowUiState(
 class FlowFireModel(
     private val repository: FlowRepository
 ) : ViewModel() {
-
     private val _uiState =
         MutableStateFlow(
             FlowUiState()
@@ -117,13 +117,30 @@ class FlowFireModel(
 
     private fun observeEntries() {
         viewModelScope.launch {
-            repository.observeEntries().collect { entries ->
+            combine(
+                repository.observeEntries(),
+                repository.observeEntryIdsWithAttachments()
+            ) { entries, attachmentEntryIds ->
+
+                val idsWithAttachments =
+                    attachmentEntryIds.toSet()
+
+                entries.map { entry ->
+                    EntryUiModel(
+                        id = entry.id,
+                        text = entry.text,
+                        type = entry.type,
+                        completed = entry.completed,
+                        folderId = entry.folderId,
+                        hasAttachments =
+                            entry.id in idsWithAttachments
+                    )
+                }
+            }.collect { entries ->
 
                 _uiState.update {
                     it.copy(
-                        entries = entries.map(
-                            ::toUiModel
-                        )
+                        entries = entries
                     )
                 }
             }

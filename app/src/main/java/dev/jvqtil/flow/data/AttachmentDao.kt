@@ -60,4 +60,9 @@ interface AttachmentDao {
     suspend fun deleteForFolder(
         folderId: String
     )
+
+    @Query(
+        "SELECT DISTINCT entryId FROM attachments"
+    )
+    fun observeEntryIdsWithAttachments(): Flow<List<String>>
 }

@@ -42,7 +42,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -141,16 +140,6 @@ fun HomeScreen(
     var createFolderForMove by remember {
         mutableStateOf(false)
     }
-
-    val containerCornerRadius by animateDpAsState(
-        targetValue = if (folders.lastOrNull()?.id == selectedFolderId) {
-            18.dp
-        } else {
-            12.dp
-        },
-        animationSpec = tween(200),
-        label = "containerCornerRadius"
-    )
 
     LaunchedEffect(shouldScrollToTop) {
         if (!shouldScrollToTop) {
@@ -295,12 +284,6 @@ fun HomeScreen(
                 modifier = Modifier
                     .weight(1f)
                     .height(38.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topEnd = containerCornerRadius,
-                            bottomEnd = containerCornerRadius
-                        )
-                    )
             ) {
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -312,6 +295,16 @@ fun HomeScreen(
                     ) { folder ->
                         val selected = folder.id == selectedFolderId
 
+                        val cornerRadius by animateDpAsState(
+                            targetValue = if (selected) {
+                                18.dp
+                            } else {
+                                12.dp
+                            },
+                            animationSpec = tween(200),
+                            label = "folderCornerRadius"
+                        )
+
                         Box(
                             modifier = Modifier
                                 .background(
@@ -320,7 +313,7 @@ fun HomeScreen(
                                     } else {
                                         MaterialTheme.colorScheme.surfaceContainer
                                     },
-                                    shape = RoundedCornerShape(containerCornerRadius)
+                                    shape = RoundedCornerShape(cornerRadius)
                                 )
                                 .combinedClickable(
                                     onClick = {
@@ -388,7 +381,8 @@ fun HomeScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(R.string.new_folder_label),
+                        contentDescription =
+                            stringResource(R.string.new_folder_label),
                         modifier = Modifier.size(22.dp),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
