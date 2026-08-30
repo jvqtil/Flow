@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.NorthEast
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,14 +46,19 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import dev.jvqtil.flow.BuildConfig
 import dev.jvqtil.flow.R
+import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
+import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.ui.models.EditorFont
 import dev.jvqtil.flow.ui.models.KeyboardMode
 import dev.jvqtil.flow.ui.models.UiFont
 import dev.jvqtil.flow.ui.models.fontFamily
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    defaultEntryType: String,
+    onDefaultEntryTypeChanged: (String) -> Unit,
     amoled: Boolean,
     onAmoledChanged: (Boolean) -> Unit,
     uiFont: UiFont,
@@ -113,6 +119,56 @@ fun SettingsScreen(
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
         ) {
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            Text(
+                text = stringResource(R.string.default_entry_type_label),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
+
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val entryTypes = listOf(
+                    ENTRY_TYPE_NOTE to R.string.note_label,
+                    ENTRY_TYPE_TASK to R.string.task_label
+                )
+
+                entryTypes.forEachIndexed { index, (type, labelRes) ->
+                    SegmentedButton(
+                        selected = defaultEntryType == type,
+                        onClick = {
+                            onDefaultEntryTypeChanged(type)
+                        },
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = entryTypes.size
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = stringResource(labelRes)
+                        )
+                    }
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceContainerHighest
+            )
+
             Spacer(
                 modifier = Modifier.height(16.dp)
             )

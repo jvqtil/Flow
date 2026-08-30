@@ -66,6 +66,7 @@
     <string name="undo_label">Undo</string>
     <string name="master_folder_label">Master</string>
     <string name="reset_folder_name_label">Reset folder name</string>
+    <string name="default_entry_type_label">Default entry type</string>
 
     <string-array name="editor_placeholders">
         <item>Any ideas?</item>

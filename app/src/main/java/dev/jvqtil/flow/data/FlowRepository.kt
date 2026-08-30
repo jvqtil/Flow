@@ -237,12 +237,24 @@ class FlowRepository(
     suspend fun deleteAttachment(
         attachment: Attachment
     ) {
-        attachmentStorage.delete(
-            attachment.path
-        )
-
         attachmentDao.delete(
             attachment
+        )
+    }
+
+    suspend fun restoreAttachment(
+        attachment: Attachment
+    ) {
+        attachmentDao.insert(
+            attachment
+        )
+    }
+
+    fun permanentlyDeleteAttachment(
+        attachment: Attachment
+    ) {
+        attachmentStorage.delete(
+            attachment.path
         )
     }
 

@@ -498,7 +498,7 @@ fun EntryCard(
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
-                                .align(Alignment.CenterEnd)
+                                .align(Alignment.TopEnd)
                                 .size(16.dp)
                         )
                     }

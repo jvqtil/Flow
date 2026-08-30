@@ -192,6 +192,13 @@ fun FlowNavHost(
         mutableStateOf(false)
     }
 
+    val defaultEntryType by
+    AppPreferences
+        .observeDefaultEntryType(context)
+        .collectAsStateWithLifecycle(
+            initialValue = ENTRY_TYPE_NOTE
+        )
+
     val amoled by
     AppPreferences
         .observeAmoled(context)
@@ -400,6 +407,15 @@ fun FlowNavHost(
 
         composable(SETTINGS_ROUTE) {
             SettingsScreen(
+                defaultEntryType = defaultEntryType,
+                onDefaultEntryTypeChanged = { type ->
+                    scope.launch {
+                        AppPreferences.setDefaultEntryType(
+                            context = context,
+                            type = type
+                        )
+                    }
+                },
                 amoled = amoled,
                 onAmoledChanged = { enabled ->
                     scope.launch {
@@ -527,7 +543,9 @@ fun FlowNavHost(
                 currentEntry =
                     when {
                         isNew -> {
-                            flowFireModel.createEntry()
+                            flowFireModel.createEntry(
+                                type = defaultEntryType
+                            )
                         }
 
                         !routeEntryId.isNullOrBlank() -> {
@@ -791,6 +809,16 @@ fun FlowNavHost(
                     },
                     onDeleteAttachment = { attachment ->
                         flowFireModel.deleteAttachment(
+                            attachment
+                        )
+                    },
+                    onRestoreAttachment = { attachment ->
+                        flowFireModel.restoreAttachment(
+                            attachment
+                        )
+                    },
+                    onPermanentlyDeleteAttachment = { attachment ->
+                        flowFireModel.permanentlyDeleteAttachment(
                             attachment
                         )
                     },

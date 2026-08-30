@@ -1,12 +1,16 @@
 package dev.jvqtil.flow.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -109,6 +113,10 @@ fun HomeScreen(
         mutableStateOf(entries)
     }
 
+    LaunchedEffect(entries) {
+        localEntries = entries
+    }
+
     var closeActionsToken by remember {
         mutableIntStateOf(0)
     }
@@ -127,6 +135,10 @@ fun HomeScreen(
 
     var folderActionTarget by remember {
         mutableStateOf<FolderUiModel?>(null)
+    }
+
+    var folderSwitchDirection by remember {
+        mutableIntStateOf(1)
     }
 
     var renameTarget by remember {
@@ -161,10 +173,6 @@ fun HomeScreen(
         }
 
         onScrollToTopHandled()
-    }
-
-    LaunchedEffect(entries) {
-        localEntries = entries
     }
 
     fun closeActions() {
@@ -393,6 +401,21 @@ fun HomeScreen(
                                 .combinedClickable(
                                     onClick = {
                                         if (!selected) {
+                                            val currentIndex = folders.indexOfFirst {
+                                                it.id == selectedFolderId
+                                            }
+
+                                            val newIndex = folders.indexOfFirst {
+                                                it.id == folder.id
+                                            }
+
+                                            folderSwitchDirection =
+                                                if (newIndex > currentIndex) {
+                                                    1
+                                                } else {
+                                                    -1
+                                                }
+
                                             closeActions()
                                             onSelectFolder(folder.id)
                                         }
@@ -478,11 +501,34 @@ fun HomeScreen(
                     end = 16.dp
                 )
         ) {
-            val folderEntries = visibleEntries.filter {
-                it.folderId == selectedFolderId
-            }
+            AnimatedContent(
+                targetState = selectedFolderId,
+                transitionSpec = {
+                    val direction = folderSwitchDirection
 
-            if (folderEntries.isNotEmpty()) {
+                    (
+                            slideInHorizontally(
+                                initialOffsetX = { direction * it / 4 },
+                                animationSpec = tween(250)
+                            ) + fadeIn(
+                                animationSpec = tween(180)
+                            )
+                            ).togetherWith(
+                            slideOutHorizontally(
+                                targetOffsetX = { -direction * it / 4 },
+                                animationSpec = tween(250)
+                            ) + fadeOut(
+                                animationSpec = tween(160)
+                            )
+                        )
+                },
+                label = "folderContent"
+            ) { folderId ->
+
+                val folderEntries = visibleEntries.filter {
+                    it.folderId == folderId
+                }
+
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),

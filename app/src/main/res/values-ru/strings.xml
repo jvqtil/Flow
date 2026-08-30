@@ -59,6 +59,7 @@
     <string name="undo_label">Отменить</string>
     <string name="master_folder_label">Основное</string>
     <string name="reset_folder_name_label">Сбросить имя папки</string>
+    <string name="default_entry_type_label">Тип заметки по умолчанию</string>
 
     <string-array name="editor_placeholders">
         <item>Есть идеи?</item>

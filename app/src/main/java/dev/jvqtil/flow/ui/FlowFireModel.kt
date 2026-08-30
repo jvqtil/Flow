@@ -252,11 +252,15 @@ class FlowFireModel(
         }
     }
 
-    fun createEntry(): EntryUiModel {
+    fun createEntry(
+        type: String = ENTRY_TYPE_NOTE
+    ): EntryUiModel {
         return EntryUiModel(
             id = UUID.randomUUID().toString(),
             text = "",
-            folderId = _uiState.value.selectedFolderId ?: ""
+            type = type,
+            folderId = _uiState.value.selectedFolderId ?: "",
+            completed = false
         )
     }
 
@@ -425,7 +429,6 @@ class FlowFireModel(
 
                         _uiState.update {
                             it.copy(
-
                                 pendingDeletedEntries = it.pendingDeletedEntries - operation.entry.id,
                                 undoOperation = null,
                                 deletingEntriesIds = it.deletingEntriesIds - operation.entry.id,
@@ -579,11 +582,29 @@ class FlowFireModel(
         }
     }
 
-    fun observeAttachments(
-        entryId: String
-    ) = repository.observeAttachments(
-        entryId
-    )
+    fun restoreAttachment(
+        attachment: Attachment
+    ) {
+        viewModelScope.launch {
+            databaseMutex.withLock {
+                repository.restoreAttachment(
+                    attachment
+                )
+            }
+        }
+    }
+
+    fun permanentlyDeleteAttachment(
+        attachment: Attachment
+    ) {
+        viewModelScope.launch {
+            databaseMutex.withLock {
+                repository.permanentlyDeleteAttachment(
+                    attachment
+                )
+            }
+        }
+    }
 
     private fun toUiModel(
         entry: Entry

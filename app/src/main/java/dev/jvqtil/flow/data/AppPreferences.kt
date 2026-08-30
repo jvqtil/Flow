@@ -22,6 +22,9 @@ object AppPreferences {
     private val LAST_UPDATE_CHECK =
         longPreferencesKey("last_update_check")
 
+    private val DEFAULT_ENTRY_TYPE_KEY =
+        stringPreferencesKey("default_entry_type")
+
     private val AMOLED_KEY =
         booleanPreferencesKey("AMOLED")
 
@@ -53,6 +56,28 @@ object AppPreferences {
     ) {
         context.dataStore.edit { preferences ->
             preferences[LAST_UPDATE_CHECK] = timestamp
+        }
+    }
+
+    fun observeDefaultEntryType(
+        context: Context
+    ): Flow<String> =
+        context.dataStore.data.map { preferences ->
+            when (preferences[DEFAULT_ENTRY_TYPE_KEY]) {
+                ENTRY_TYPE_TASK ->
+                    ENTRY_TYPE_TASK
+
+                else ->
+                    ENTRY_TYPE_NOTE
+            }
+        }
+
+    suspend fun setDefaultEntryType(
+        context: Context,
+        type: String
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[DEFAULT_ENTRY_TYPE_KEY] = type
         }
     }
 
