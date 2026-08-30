@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -50,11 +51,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringArrayResource
@@ -65,8 +68,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
+import coil3.compose.AsyncImage
 import dev.jvqtil.flow.R
 import dev.jvqtil.flow.data.Attachment
+import dev.jvqtil.flow.data.AttachmentStorage
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.data.MASTER_FOLDER_ID
 import dev.jvqtil.flow.ui.EntryUiModel
@@ -86,6 +92,7 @@ import kotlin.time.Duration.Companion.milliseconds
 fun EditorScreen(
     entry: EntryUiModel,
     attachments: List<Attachment>,
+    attachmentStorage: AttachmentStorage,
     folders: List<FolderUiModel>,
     selectedFolderId: String,
     autoFocus: Boolean,
@@ -245,16 +252,14 @@ fun EditorScreen(
                 Row(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(
-                            top = 8.dp, start = 64.dp, end = 8.dp
-                        ),
+                        .padding(top = 8.dp, end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .height(42.dp)
-                            .widthIn(max = 130.dp)
+                            .widthIn(min = 80.dp, max = 130.dp)
                             .background(
                                 MaterialTheme.colorScheme.surfaceContainer,
                                 RoundedCornerShape(16.dp)
@@ -294,15 +299,15 @@ fun EditorScreen(
 
                     Box(
                         modifier = Modifier
+                            .width(92.dp)
                             .height(42.dp)
                             .background(
-                                MaterialTheme.colorScheme.surfaceContainer,
-                                RoundedCornerShape(16.dp)
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                shape = RoundedCornerShape(16.dp)
                             )
                             .clickable(
                                 onClick = onToggleTaskNote
-                            )
-                            .padding(horizontal = 12.dp),
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
@@ -344,44 +349,29 @@ fun EditorScreen(
                         }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clickable(
-                                enabled = entry.text.isNotBlank()
-                            ) {
-                                attachmentLauncher.launch(
-                                    arrayOf("*/*")
-                                )
-                            },
-                        contentAlignment = Alignment.Center
+                    IconButton(
+                        onClick = {
+                            attachmentLauncher.launch(arrayOf("*/*"))
+                        },
+                        enabled = entry.text.isNotBlank(),
+                        modifier = Modifier.size(42.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.AttachFile,
                             contentDescription = stringResource(
                                 R.string.attach_file_label
                             ),
-                            tint =
-                                if (entry.text.isNotBlank()) {
-                                    MaterialTheme.colorScheme.onBackground
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                        alpha = 0.4f
-                                    )
-                                },
-                            modifier = Modifier.size(24.dp)
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clickable {
-                                focusManager.clearFocus(force = true)
-                                hasFocus = false
-                                onDelete()
-                            },
-                        contentAlignment = Alignment.Center
+                    IconButton(
+                        onClick = {
+                            focusManager.clearFocus(force = true)
+                            hasFocus = false
+                            onDelete()
+                        },
+                        modifier = Modifier.size(42.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
@@ -445,10 +435,9 @@ fun EditorScreen(
                             ) {
                                 AttachmentPreview(
                                     attachment = attachment,
+                                    attachmentStorage = attachmentStorage,
                                     onOpen = {
-                                        onOpenAttachment(
-                                            attachment
-                                        )
+                                        onOpenAttachment(attachment)
                                     },
                                     onDelete = {
                                         if (deletedAttachment == null) {
@@ -535,38 +524,62 @@ fun EditorScreen(
 @Composable
 private fun AttachmentPreview(
     attachment: Attachment,
+    attachmentStorage: AttachmentStorage,
     onOpen: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val isImage =
+        attachment.mimeType?.startsWith("image/") == true
+
+    val file = remember(attachment.path) {
+        attachmentStorage.getFile(attachment.path)
+    }
+
     Box(
         modifier = Modifier
             .size(
-                width = 180.dp, height = 56.dp
+                width = 160.dp,
+                height = 80.dp
             )
             .background(
-                MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp)
+                MaterialTheme.colorScheme.surfaceContainer,
+                RoundedCornerShape(12.dp)
             )
-            .clickable {
-                onOpen()
-            }
+            .clickable(
+                onClick = onOpen
+            )
     ) {
-        Text(
-            text = attachment.fileName,
-            color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(
-                    start = 12.dp, end = 40.dp
-                )
-        )
+        if (isImage) {
+            AsyncImage(
+                model = file.toUri(),
+                contentDescription = attachment.fileName,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(
+                        RoundedCornerShape(12.dp)
+                    ),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Text(
+                text = attachment.fileName,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(
+                        start = 12.dp,
+                        end = 40.dp
+                    )
+            )
+        }
 
         IconButton(
             onClick = onDelete,
             modifier = Modifier
-                .align(Alignment.CenterEnd)
+                .align(Alignment.TopEnd)
                 .size(40.dp)
         ) {
             Icon(
@@ -574,7 +587,8 @@ private fun AttachmentPreview(
                 contentDescription = stringResource(
                     R.string.delete_label
                 ),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
             )
         }
     }

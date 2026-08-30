@@ -586,6 +586,7 @@ fun FlowNavHost(
                 EditorScreen(
                     entry = entry,
                     attachments = attachments,
+                    attachmentStorage = attachmentStorage,
                     folders = uiState.folders,
                     selectedFolderId =
                         entry.folderId,

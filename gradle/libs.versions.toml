@@ -1,5 +1,6 @@
 [versions]
 agp = "9.3.2"
+coilCompose = "3.6.0"
 coreKtx = "1.19.0"
 datastorePreferences = "1.2.1"
 junit = "4.13.2"
@@ -19,7 +20,6 @@ sqlite = "2.7.0"
 uiUnit = "1.12.0"
 foundationLayout = "1.12.0"
 uiText = "1.12.0"
-material3 = "1.4.0"
 runtime = "1.12.0"
 
 [libraries]
@@ -27,6 +27,7 @@ androidx-compose-material-icons-extended = { module = "androidx.compose.material
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilCompose" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
@@ -50,7 +51,6 @@ androidx-compose-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", ve
 reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundationLayout" }
 androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtime" }
 
 [plugins]
