@@ -200,11 +200,8 @@ class FlowFireModel(
     fun deleteFolder(
         folderId: String
     ) {
-
         viewModelScope.launch {
-
             databaseMutex.withLock {
-
                 val folder = repository.findFolderById(
                     folderId
                 ) ?: return@withLock
@@ -214,7 +211,6 @@ class FlowFireModel(
                 )
 
                 _uiState.update { state ->
-
                     state.copy(
                         selectedFolderId = if (state.selectedFolderId == folderId) {
                             null
@@ -234,20 +230,15 @@ class FlowFireModel(
     suspend fun getEntry(
         id: String
     ): EntryUiModel? {
-
         return databaseMutex.withLock {
-
             repository.findById(id)?.let(::toUiModel)
         }
     }
 
     fun createEntry(): EntryUiModel {
-
         return EntryUiModel(
             id = UUID.randomUUID().toString(),
-
             text = "",
-
             folderId = _uiState.value.selectedFolderId ?: ""
         )
     }
@@ -255,13 +246,11 @@ class FlowFireModel(
     suspend fun ensureEntryExists(
         entry: EntryUiModel
     ) {
-
         if (entry.folderId.isBlank()) {
             return
         }
 
         databaseMutex.withLock {
-
             if (repository.findById(
                     entry.id
                 ) != null
@@ -282,7 +271,6 @@ class FlowFireModel(
     fun saveNewEntry(
         entry: EntryUiModel
     ) {
-
         val normalizedEntry = entry.copy(
             text = trimEmptyLines(
                 entry.text
@@ -294,9 +282,7 @@ class FlowFireModel(
         }
 
         viewModelScope.launch {
-
             databaseMutex.withLock {
-
                 repository.insertAtTop(
                     normalizedEntry.toDataModel()
                 )
@@ -307,7 +293,6 @@ class FlowFireModel(
     fun updateEntry(
         entry: EntryUiModel, hasAttachments: Boolean
     ) {
-
         val normalizedEntry = entry.copy(
             text = trimEmptyLines(
                 entry.text
@@ -315,9 +300,7 @@ class FlowFireModel(
         )
 
         viewModelScope.launch {
-
             databaseMutex.withLock {
-
                 val existing = repository.findById(
                     normalizedEntry.id
                 ) ?: return@withLock
@@ -344,11 +327,8 @@ class FlowFireModel(
     fun updateEntriesPositions(
         folderId: String, entryIds: List<String>
     ) {
-
         viewModelScope.launch {
-
             databaseMutex.withLock {
-
                 repository.updateEntriesPositions(
                     folderId = folderId, entryIds = entryIds
                 )
@@ -359,11 +339,8 @@ class FlowFireModel(
     fun moveEntryToFolder(
         entryId: String, targetFolderId: String
     ) {
-
         viewModelScope.launch {
-
             databaseMutex.withLock {
-
                 val entry = repository.findById(
                     entryId
                 ) ?: return@withLock
@@ -388,11 +365,8 @@ class FlowFireModel(
     fun deleteEntry(
         entryId: String
     ) {
-
         viewModelScope.launch {
-
             databaseMutex.withLock {
-
                 val entry = repository.findById(
                     entryId
                 ) ?: return@withLock
@@ -407,37 +381,27 @@ class FlowFireModel(
     private suspend fun deleteExistingEntry(
         entry: Entry
     ) {
-
         repository.delete(
             entry
         )
 
         _uiState.update {
             it.copy(
-
                 pendingDeletedEntries = it.pendingDeletedEntries + (entry.id to entry),
-
                 undoOperation = UndoOperation.EntryDeleted(
                     entry
                 ),
-
                 deletingEntriesIds = it.deletingEntriesIds + entry.id,
-
                 restoringEntryId = null
             )
         }
     }
 
     fun undoDelete() {
-
         viewModelScope.launch {
-
             databaseMutex.withLock {
-
                 when (val operation = _uiState.value.undoOperation) {
-
                     is UndoOperation.EntryDeleted -> {
-
                         repository.restore(
                             operation.entry
                         )
@@ -446,11 +410,8 @@ class FlowFireModel(
                             it.copy(
 
                                 pendingDeletedEntries = it.pendingDeletedEntries - operation.entry.id,
-
                                 undoOperation = null,
-
                                 deletingEntriesIds = it.deletingEntriesIds - operation.entry.id,
-
                                 restoringEntryId = operation.entry.id
                             )
                         }
@@ -467,7 +428,6 @@ class FlowFireModel(
                             )
                         }
                     }
-
                     null -> Unit
                 }
             }
@@ -475,13 +435,9 @@ class FlowFireModel(
     }
 
     fun clearUndo() {
-
         viewModelScope.launch {
-
             databaseMutex.withLock {
-
                 when (val operation = _uiState.value.undoOperation) {
-
                     is UndoOperation.EntryDeleted -> {
                         repository.purgeAttachments(
                             operation.entry.id
@@ -493,7 +449,6 @@ class FlowFireModel(
                             operation.snapshot
                         )
                     }
-
                     null -> Unit
                 }
 
@@ -509,19 +464,15 @@ class FlowFireModel(
     fun clearDeletedAnimation(
         id: String
     ) {
-
         _uiState.update {
             it.copy(
-
                 pendingDeletedEntries = it.pendingDeletedEntries - id,
-
                 deletingEntriesIds = it.deletingEntriesIds - id
             )
         }
     }
 
     fun clearRestoringEntry() {
-
         _uiState.update {
             it.copy(
                 restoringEntryId = null
@@ -532,11 +483,8 @@ class FlowFireModel(
     fun toggleCompleted(
         entryId: String
     ) {
-
         viewModelScope.launch {
-
             databaseMutex.withLock {
-
                 val entry = repository.findById(
                     entryId
                 ) ?: return@withLock
@@ -557,11 +505,8 @@ class FlowFireModel(
     fun toggleTaskNote(
         entryId: String
     ) {
-
         viewModelScope.launch {
-
             databaseMutex.withLock {
-
                 val entry = repository.findById(
                     entryId
                 ) ?: return@withLock
@@ -574,9 +519,7 @@ class FlowFireModel(
 
                 repository.update(
                     entry.copy(
-
                         type = type,
-
                         completed = if (type == ENTRY_TYPE_TASK) {
                             entry.completed
                         } else {
@@ -591,9 +534,7 @@ class FlowFireModel(
     suspend fun addAttachments(
         entryId: String, uris: List<Uri>
     ) {
-
         databaseMutex.withLock {
-
             if (repository.findById(
                     entryId
                 ) == null
@@ -602,7 +543,6 @@ class FlowFireModel(
             }
 
             uris.forEach { uri ->
-
                 repository.insertAttachment(
                     entryId = entryId, uri = uri
                 )
@@ -613,11 +553,8 @@ class FlowFireModel(
     fun deleteAttachment(
         attachment: Attachment
     ) {
-
         viewModelScope.launch {
-
             databaseMutex.withLock {
-
                 repository.deleteAttachment(
                     attachment
                 )
@@ -634,7 +571,6 @@ class FlowFireModel(
     private fun toUiModel(
         entry: Entry
     ): EntryUiModel {
-
         return EntryUiModel(
             id = entry.id,
             text = entry.text,

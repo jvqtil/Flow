@@ -44,12 +44,6 @@ class FlowRepository(
         folderDao.update(folder)
     }
 
-    suspend fun deleteFolder(
-        folder: Folder
-    ) {
-        folderDao.delete(folder)
-    }
-
     suspend fun deleteFolderWithEntries(
         folder: Folder
     ): DeletedFolderSnapshot {
@@ -114,20 +108,8 @@ class FlowRepository(
         return entryDao.observeAllNotes()
     }
 
-    fun observeEntries(
-        folderId: String
-    ): Flow<List<Entry>> {
-        return entryDao.observeNotes(folderId)
-    }
-
     suspend fun getAllEntries(): List<Entry> {
         return entryDao.getAllNotes()
-    }
-
-    suspend fun getEntries(
-        folderId: String
-    ): List<Entry> {
-        return entryDao.getNotes(folderId)
     }
 
     suspend fun findById(
@@ -145,22 +127,6 @@ class FlowRepository(
 
         entryDao.insert(
             entry.copy(
-                position = 0L
-            )
-        )
-    }
-
-    suspend fun insertAtTop(
-        entry: Entry,
-        folderId: String
-    ) {
-        entryDao.shiftPositionsDown(
-            folderId = folderId
-        )
-
-        entryDao.insert(
-            entry.copy(
-                folderId = folderId,
                 position = 0L
             )
         )
@@ -299,17 +265,7 @@ class FlowRepository(
         )
     }
 
-    suspend fun purgeFolderAttachments(
-        entries: List<Entry>
-    ) {
-        entries.forEach { entry ->
-            purgeAttachments(
-                entry.id
-            )
-        }
-    }
-
-    suspend fun permanentlyDeleteFolderSnapshot(
+    fun permanentlyDeleteFolderSnapshot(
         snapshot: DeletedFolderSnapshot
     ) {
         snapshot.attachments.forEach { attachment ->
