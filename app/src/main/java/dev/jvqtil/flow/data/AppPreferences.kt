@@ -4,12 +4,14 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.jvqtil.flow.ui.models.EditorFont
 import dev.jvqtil.flow.ui.models.KeyboardMode
 import dev.jvqtil.flow.ui.models.UiFont
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(
@@ -17,6 +19,8 @@ private val Context.dataStore by preferencesDataStore(
 )
 
 object AppPreferences {
+    private val LAST_UPDATE_CHECK =
+        longPreferencesKey("last_update_check")
 
     private val AMOLED_KEY =
         booleanPreferencesKey("AMOLED")
@@ -32,6 +36,25 @@ object AppPreferences {
 
     private val KEYBOARD_MODE =
         stringPreferencesKey("keyboard_mode")
+
+    suspend fun getLastUpdateCheck(
+        context: Context
+    ): Long {
+        return context.dataStore.data
+            .map { preferences ->
+                preferences[LAST_UPDATE_CHECK] ?: 0L
+            }
+            .first()
+    }
+
+    suspend fun setLastUpdateCheck(
+        context: Context,
+        timestamp: Long
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[LAST_UPDATE_CHECK] = timestamp
+        }
+    }
 
     fun observeAmoled(
         context: Context

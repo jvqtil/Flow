@@ -24,6 +24,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -31,6 +32,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import dev.jvqtil.flow.BuildConfig
 import dev.jvqtil.flow.data.AppPreferences
 import dev.jvqtil.flow.data.Attachment
 import dev.jvqtil.flow.data.AttachmentStorage
@@ -47,6 +49,8 @@ import dev.jvqtil.flow.ui.models.UiFont
 import dev.jvqtil.flow.ui.screens.EditorScreen
 import dev.jvqtil.flow.ui.screens.HomeScreen
 import dev.jvqtil.flow.ui.screens.SettingsScreen
+import dev.jvqtil.flow.update.UpdateChecker
+import dev.jvqtil.flow.update.UpdateModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -59,6 +63,38 @@ fun FlowNavHost(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
+
+    var updateAvailable by remember {
+        mutableStateOf<UpdateModel?>(null)
+    }
+
+    LaunchedEffect(Unit) {
+        val lastCheck =
+            AppPreferences.getLastUpdateCheck(context)
+
+        val now =
+            System.currentTimeMillis()
+
+        val oneDay =
+            24 * 60 * 60 * 1000L
+
+        if (now - lastCheck >= oneDay) {
+            runCatching {
+                UpdateChecker().check(
+                    currentVersion =
+                        BuildConfig.VERSION_NAME
+                            .substringBefore("-")
+                )
+            }.onSuccess { update ->
+                updateAvailable = update
+
+                AppPreferences.setLastUpdateCheck(
+                    context = context,
+                    timestamp = now
+                )
+            }
+        }
+    }
 
     val exportLauncher =
         rememberLauncherForActivityResult(
@@ -239,6 +275,17 @@ fun FlowNavHost(
                     ?: uiState.folders.firstOrNull()?.id
 
             HomeScreen(
+                updateAvailable = updateAvailable,
+                onUpdateClick = {
+                    updateAvailable?.url?.let { url ->
+                        context.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                url.toUri()
+                            )
+                        )
+                    }
+                },
                 entries = if (selectedFolderId != null) {
                     uiState.entries.filter {
                         it.folderId == selectedFolderId
