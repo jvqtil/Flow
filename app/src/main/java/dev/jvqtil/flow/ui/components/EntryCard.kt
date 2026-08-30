@@ -78,7 +78,7 @@ fun EntryCard(
     onDelete: () -> Unit,
     onToggleCompleted: () -> Unit,
     onToggleTaskNote: () -> Unit,
-    onSwitchList: () -> Unit,
+    onSwitchFolder: () -> Unit,
     onAnimationFinished: () -> Unit
 ) {
     val visibleState = remember(entry.id) {
@@ -298,7 +298,7 @@ fun EntryCard(
                                         animationSpec = tween(180)
                                     )
 
-                                    onSwitchList()
+                                    onSwitchFolder()
                                 }
                             },
                             modifier = Modifier.size(56.dp)
@@ -307,7 +307,7 @@ fun EntryCard(
                                 imageVector = Icons.Default.Folder,
                                 contentDescription =
                                     stringResource(
-                                        R.string.switch_list_label
+                                        R.string.switch_folder_label
                                     ),
                                 tint =
                                     MaterialTheme.colorScheme.primary

@@ -16,5 +16,5 @@ data class Entry(
     val position: Long = 0L,
     val type: String = ENTRY_TYPE_NOTE,
     val completed: Boolean = false,
-    val listId: String = ALL_LIST_ID
+    val folderId: String
 )

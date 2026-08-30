@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,15 +37,15 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.jvqtil.flow.R
-import dev.jvqtil.flow.data.ALL_LIST_ID
-import dev.jvqtil.flow.ui.EntryListUiModel
+import dev.jvqtil.flow.data.MASTER_FOLDER_ID
+import dev.jvqtil.flow.ui.FolderUiModel
 
 private val SheetShape = RoundedCornerShape(18.dp)
 private val FieldShape = RoundedCornerShape(14.dp)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ListBottomSheet(
+private fun FolderBottomSheet(
     onDismiss: () -> Unit,
     content: @Composable () -> Unit
 ) {
@@ -92,10 +93,8 @@ private fun SheetRow(
     onClick: () -> Unit,
     icon: @Composable () -> Unit,
     title: String,
-    titleColor: Color =
-        MaterialTheme.colorScheme.onSurface,
-    backgroundColor: Color =
-        MaterialTheme.colorScheme.surfaceContainer,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainer,
     trailingContent: (@Composable () -> Unit)? = null
 ) {
     Row(
@@ -128,36 +127,30 @@ private fun SheetRow(
 }
 
 @Composable
-fun ListChoiceBottomSheet(
-    lists: List<EntryListUiModel>,
-    selectedListId: String,
+fun FolderChoiceBottomSheet(
+    folders: List<FolderUiModel>,
+    selectedFolderId: String,
     onSelect: (String) -> Unit,
-    onCreateList: () -> Unit,
+    onCreateFolder: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ListBottomSheet(
+    FolderBottomSheet(
         onDismiss = onDismiss
     ) {
         SheetTitle(
-            text = stringResource(R.string.switch_list_label)
+            text = stringResource(R.string.switch_folder_label)
         )
-
-        lists.forEach { list ->
-            val selected = list.id == selectedListId
-
-            val listName =
-                if (list.id == ALL_LIST_ID) {
-                    stringResource(R.string.all_list_label)
-                } else {
-                    list.name
-                }
+        folders.forEach { folder ->
+            val selected = folder.id == selectedFolderId
 
             SheetRow(
                 onClick = {
-                    onSelect(list.id)
+                    onSelect(folder.id)
                     onDismiss()
                 },
-                title = listName,
+                title = if (folder.id == MASTER_FOLDER_ID && folder.name.isBlank())
+                    stringResource(R.string.master_folder_label)
+                else folder.name,
                 backgroundColor =
                     if (selected) {
                         MaterialTheme.colorScheme.primaryContainer
@@ -177,25 +170,24 @@ fun ListChoiceBottomSheet(
                         modifier = Modifier.size(22.dp)
                     )
                 },
-                trailingContent =
-                    if (selected) {
-                        {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    } else {
-                        null
+                trailingContent = if (selected) {
+                    @Composable {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
+                } else {
+                    null
+                }
             )
         }
 
         SheetRow(
-            onClick = onCreateList,
-            title = stringResource(R.string.new_list_label),
+            onClick = onCreateFolder,
+            title = stringResource(R.string.new_folder_label),
             icon = {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -203,31 +195,25 @@ fun ListChoiceBottomSheet(
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp)
                 )
-            },
-            backgroundColor = MaterialTheme.colorScheme.surfaceContainer
+            }
         )
     }
 }
 
 @Composable
-fun ListActionsBottomSheet(
-    list: EntryListUiModel,
+fun FolderActionsBottomSheet(
+    folder: FolderUiModel,
     onRename: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ListBottomSheet(
+    FolderBottomSheet(
         onDismiss = onDismiss
     ) {
-        val listName =
-            if (list.id == ALL_LIST_ID) {
-                stringResource(R.string.all_list_label)
-            } else {
-                list.name
-            }
-
         SheetTitle(
-            text = listName
+            text = if (folder.id == MASTER_FOLDER_ID && folder.name.isBlank())
+                stringResource(R.string.master_folder_label)
+            else folder.name
         )
 
         SheetRow(
@@ -243,50 +229,53 @@ fun ListActionsBottomSheet(
             }
         )
 
-        SheetRow(
-            onClick = onDelete,
-            title = stringResource(R.string.delete_label),
-            titleColor = MaterialTheme.colorScheme.error,
-            backgroundColor = MaterialTheme.colorScheme.errorContainer,
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-        )
+        if (folder.id != MASTER_FOLDER_ID) {
+            SheetRow(
+                onClick = onDelete,
+                title = stringResource(R.string.delete_label),
+                titleColor = MaterialTheme.colorScheme.error,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            )
+        }
     }
 }
 
 @Composable
-private fun ListEditorBottomSheet(
+private fun FolderEditorBottomSheet(
     title: String,
     value: String,
     actionText: String,
     onValueChange: (String) -> Unit,
     onAction: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    extraContent: (@Composable () -> Unit)? = null
 ) {
     val focusRequester = remember {
         FocusRequester()
     }
 
-    val keyboardController =
-        LocalSoftwareKeyboardController.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
         keyboardController?.show()
     }
 
-    ListBottomSheet(
+    FolderBottomSheet(
         onDismiss = onDismiss
     ) {
         SheetTitle(
             text = title
         )
+
+        extraContent?.invoke()
 
         OutlinedTextField(
             value = value,
@@ -294,17 +283,13 @@ private fun ListEditorBottomSheet(
             singleLine = true,
             label = {
                 Text(
-                    stringResource(
-                        R.string.placeholder_name
-                    )
+                    stringResource(R.string.placeholder_name)
                 )
             },
             shape = FieldShape,
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(
-                    focusRequester
-                )
+                .focusRequester(focusRequester)
         )
 
         Button(
@@ -323,31 +308,46 @@ private fun ListEditorBottomSheet(
 }
 
 @Composable
-fun RenameListBottomSheet(
+fun RenameFolderBottomSheet(
     value: String,
     onValueChange: (String) -> Unit,
     onSave: () -> Unit,
+    onReset: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ListEditorBottomSheet(
-        title = stringResource(R.string.rename_list_label),
+    FolderEditorBottomSheet(
+        title = stringResource(R.string.rename_folder_label),
         value = value,
         actionText = stringResource(R.string.rename_label),
         onValueChange = onValueChange,
         onAction = onSave,
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
+        extraContent = {
+            SheetRow(
+                onClick = onReset,
+                title = stringResource(R.string.reset_folder_name_label),
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            )
+        }
     )
 }
 
 @Composable
-fun NewListBottomSheet(
+fun NewFolderBottomSheet(
     value: String,
     onValueChange: (String) -> Unit,
     onCreate: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    ListEditorBottomSheet(
-        title = stringResource(R.string.new_list_label),
+    FolderEditorBottomSheet(
+        title = stringResource(R.string.new_folder_label),
         value = value,
         actionText = stringResource(R.string.create_label),
         onValueChange = onValueChange,

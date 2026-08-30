@@ -13,11 +13,11 @@ interface EntryDao {
 
     @Query(
         "SELECT * FROM notes " +
-                "WHERE listId = :listId " +
+                "WHERE folderId = :folderId " +
                 "ORDER BY position ASC, createdAt DESC"
     )
     fun observeNotes(
-        listId: String
+        folderId: String
     ): Flow<List<Entry>>
 
     @Query(
@@ -28,11 +28,11 @@ interface EntryDao {
 
     @Query(
         "SELECT * FROM notes " +
-                "WHERE listId = :listId " +
+                "WHERE folderId = :folderId " +
                 "ORDER BY position ASC, createdAt DESC"
     )
     suspend fun getNotes(
-        listId: String
+        folderId: String
     ): List<Entry>
 
     @Query(
@@ -53,20 +53,20 @@ interface EntryDao {
     @Query(
         "UPDATE notes " +
                 "SET position = position + 1 " +
-                "WHERE listId = :listId"
+                "WHERE folderId = :folderId"
     )
     suspend fun shiftPositionsDown(
-        listId: String
+        folderId: String
     )
 
     @Query(
         "UPDATE notes " +
                 "SET position = position + 1 " +
-                "WHERE listId = :listId " +
+                "WHERE folderId = :folderId " +
                 "AND position >= :fromPosition"
     )
     suspend fun shiftPositionsDownFrom(
-        listId: String,
+        folderId: String,
         fromPosition: Long
     )
 
@@ -74,11 +74,11 @@ interface EntryDao {
         "UPDATE notes " +
                 "SET position = :position " +
                 "WHERE id = :id " +
-                "AND listId = :listId"
+                "AND folderId = :folderId"
     )
-    suspend fun updatePositionInList(
+    suspend fun updatePositionInFolder(
         id: String,
-        listId: String,
+        folderId: String,
         position: Long
     )
 
@@ -95,21 +95,21 @@ interface EntryDao {
     @Query(
         "SELECT COALESCE(MAX(position), -1) + 1 " +
                 "FROM notes " +
-                "WHERE listId = :listId"
+                "WHERE folderId = :folderId"
     )
     suspend fun getNextPosition(
-        listId: String
+        folderId: String
     ): Long
 
     @Query(
         "UPDATE notes " +
-                "SET listId = :listId, " +
+                "SET folderId = :folderId, " +
                 "position = :position " +
                 "WHERE id = :entryId"
     )
-    suspend fun moveToList(
+    suspend fun moveToFolder(
         entryId: String,
-        listId: String,
+        folderId: String,
         position: Long
     )
 
@@ -135,10 +135,10 @@ interface EntryDao {
 
     @Query(
         "DELETE FROM notes " +
-                "WHERE listId = :listId"
+                "WHERE folderId = :folderId"
     )
-    suspend fun deleteByListId(
-        listId: String
+    suspend fun deleteByFolderId(
+        folderId: String
     )
 
     @Upsert

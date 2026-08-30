@@ -31,7 +31,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import dev.jvqtil.flow.data.ALL_LIST_ID
 import dev.jvqtil.flow.data.AppPreferences
 import dev.jvqtil.flow.data.Attachment
 import dev.jvqtil.flow.data.AttachmentStorage
@@ -72,14 +71,14 @@ fun FlowNavHost(
                         val entries =
                             repository.getAllEntries()
 
-                        val lists =
-                            repository.getAllLists()
+                        val folders =
+                            repository.getAllFolders()
 
                         BackupManager.exportNotes(
                             context = context,
                             uri = uri,
                             entries = entries,
-                            lists = lists
+                            folders = folders
                         )
                     }.onSuccess {
                         Toast.makeText(
@@ -112,9 +111,9 @@ fun FlowNavHost(
                                 uri = uri
                             )
 
-                        backup.lists.forEach { list ->
-                            repository.restoreList(
-                                list
+                        backup.folders.forEach { folder ->
+                            repository.restoreFolder(
+                                folder
                             )
                         }
 
@@ -193,11 +192,12 @@ fun FlowNavHost(
     NavHost(
         navController = navController,
         startDestination = HOME_ROUTE,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                MaterialTheme.colorScheme.background
-            ),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(
+                    MaterialTheme.colorScheme.background
+                ),
         enterTransition = {
             slideInHorizontally(
                 initialOffsetX = { it / 8 },
@@ -232,24 +232,20 @@ fun FlowNavHost(
         }
     ) {
         composable(HOME_ROUTE) {
-            val visibleEntries =
-                if (
-                    uiState.selectedListId ==
-                    ALL_LIST_ID
-                ) {
-                    uiState.entries
-                } else {
-                    uiState.entries.filter {
-                        it.listId ==
-                                uiState.selectedListId
-                    }
-                }
+            val selectedFolderId =
+                uiState.selectedFolderId
+                    ?: uiState.folders.firstOrNull()?.id
 
             HomeScreen(
-                entries = visibleEntries,
-                lists = uiState.lists,
-                selectedListId =
-                    uiState.selectedListId,
+                entries = if (selectedFolderId != null) {
+                    uiState.entries.filter {
+                        it.folderId == selectedFolderId
+                    }
+                } else {
+                    emptyList()
+                },
+                folders = uiState.folders,
+                selectedFolderId = selectedFolderId ?: "",
                 previewLines = previewLines,
                 shouldScrollToTop =
                     shouldScrollHomeToTop,
@@ -264,38 +260,33 @@ fun FlowNavHost(
                     uiState.restoringEntryId,
                 deletingEntriesIds =
                     uiState.deletingEntriesIds,
-
-                onSelectList = { listId ->
-                    flowFireModel.selectList(
-                        listId
+                onSelectFolder = { folderId ->
+                    flowFireModel.selectFolder(
+                        folderId
                     )
                 },
-
-                onCreateList = { name ->
-                    flowFireModel.createList(name)
+                onCreateFolder = { name ->
+                    flowFireModel.createFolder(
+                        name
+                    )
                 },
-
-                onRenameList = { id, name ->
-                    flowFireModel.renameList(
-                        listId = id,
+                onRenameFolder = { id, name ->
+                    flowFireModel.renameFolder(
+                        folderId = id,
                         name = name
                     )
                 },
-
-                onDeleteList = { id ->
-                    flowFireModel.deleteList(
+                onDeleteFolder = { id ->
+                    flowFireModel.deleteFolder(
                         id
                     )
                 },
-
                 onUndo = {
                     flowFireModel.undoDelete()
                 },
-
                 onUndoTimeout = {
                     flowFireModel.clearUndo()
                 },
-
                 onAnimationFinished = { id ->
                     if (
                         uiState.deletingEntriesIds
@@ -313,19 +304,16 @@ fun FlowNavHost(
                         flowFireModel.clearRestoringEntry()
                     }
                 },
-
                 onNewEntry = {
                     navController.navigate(
                         "$EDITOR_ROUTE/new?new=true"
                     )
                 },
-
                 onOpenEntry = { id ->
                     navController.navigate(
                         "$EDITOR_ROUTE/$id?new=false"
                     )
                 },
-
                 onDeleteEntry = { id ->
                     uiState.entries
                         .firstOrNull {
@@ -333,31 +321,31 @@ fun FlowNavHost(
                         }
                         ?.let { entry ->
                             flowFireModel.deleteEntry(
-                                entry
+                                entry.id
                             )
                         }
                 },
-
                 onOpenSettings = {
                     navController.navigate(
                         SETTINGS_ROUTE
                     )
                 },
-
                 onReorderEntries = { entryIds ->
+                    val folderId =
+                        uiState.selectedFolderId
+                            ?: return@HomeScreen
+
                     flowFireModel.updateEntriesPositions(
-                        entryIds
+                        folderId = folderId,
+                        entryIds = entryIds
                     )
                 },
-
                 onToggleCompleted =
                     flowFireModel::toggleCompleted,
-
                 onToggleTaskNote =
                     flowFireModel::toggleTaskNote,
-
-                onMoveEntryToList =
-                    flowFireModel::moveEntryToList
+                onMoveEntryToFolder =
+                    flowFireModel::moveEntryToFolder
             )
         }
 
@@ -372,7 +360,6 @@ fun FlowNavHost(
                         )
                     }
                 },
-
                 uiFont = uiFont,
                 onUiFontChanged = { font ->
                     scope.launch {
@@ -382,7 +369,6 @@ fun FlowNavHost(
                         )
                     }
                 },
-
                 editorFont = editorFont,
                 onEditorFontChanged = { font ->
                     scope.launch {
@@ -392,7 +378,6 @@ fun FlowNavHost(
                         )
                     }
                 },
-
                 previewLines = previewLines,
                 onPreviewLinesChanged = { lines ->
                     scope.launch {
@@ -402,7 +387,6 @@ fun FlowNavHost(
                         )
                     }
                 },
-
                 keyboardMode = keyboardMode,
                 onKeyboardModeChanged = { mode ->
                     scope.launch {
@@ -412,13 +396,11 @@ fun FlowNavHost(
                         )
                     }
                 },
-
                 onExport = {
                     exportLauncher.launch(
                         "flow-backup.json"
                     )
                 },
-
                 onImport = {
                     importLauncher.launch(
                         arrayOf(
@@ -428,7 +410,6 @@ fun FlowNavHost(
                         )
                     )
                 },
-
                 onBack = {
                     navController.popBackStack()
                 }
@@ -438,15 +419,16 @@ fun FlowNavHost(
         composable(
             route =
                 "$EDITOR_ROUTE/{$ENTRY_ID}?new={new}",
-            arguments = listOf(
-                navArgument(ENTRY_ID) {
-                    type = NavType.StringType
-                },
-                navArgument("new") {
-                    type = NavType.BoolType
-                    defaultValue = false
-                }
-            )
+            arguments =
+                listOf(
+                    navArgument(ENTRY_ID) {
+                        type = NavType.StringType
+                    },
+                    navArgument("new") {
+                        type = NavType.BoolType
+                        defaultValue = false
+                    }
+                )
         ) { entryBackStackEntry ->
 
             val routeEntryId =
@@ -499,8 +481,7 @@ fun FlowNavHost(
                             flowFireModel.createEntry()
                         }
 
-                        !routeEntryId
-                            .isNullOrBlank() -> {
+                        !routeEntryId.isNullOrBlank() -> {
                             flowFireModel.getEntry(
                                 routeEntryId
                             )
@@ -520,7 +501,9 @@ fun FlowNavHost(
                         ?: return@LaunchedEffect
 
                 repository
-                    .observeAttachments(entryId)
+                    .observeAttachments(
+                        entryId
+                    )
                     .collect { currentAttachments ->
                         attachments =
                             currentAttachments
@@ -573,8 +556,7 @@ fun FlowNavHost(
                                 entryToSave
                             )
 
-                            shouldScrollHomeToTop =
-                                true
+                            shouldScrollHomeToTop = true
                         }
 
                         return@onDispose
@@ -585,7 +567,7 @@ fun FlowNavHost(
                         latestAttachments.isEmpty()
                     ) {
                         flowFireModel.deleteEntry(
-                            entryToSave
+                            entryToSave.id
                         )
 
                         return@onDispose
@@ -604,8 +586,9 @@ fun FlowNavHost(
                 EditorScreen(
                     entry = entry,
                     attachments = attachments,
-                    lists = uiState.lists,
-                    selectedListId = entry.listId,
+                    folders = uiState.folders,
+                    selectedFolderId =
+                        entry.folderId,
                     autoFocus = isNew,
                     uiFont = uiFont,
                     editorFont = editorFont,
@@ -633,24 +616,25 @@ fun FlowNavHost(
                         if (isNew) {
                             if (entryPersisted) {
                                 flowFireModel.deleteEntry(
-                                    entryToDelete
+                                    entryToDelete.id
                                 )
                             }
                         } else {
                             flowFireModel.deleteEntry(
-                                entryToDelete
+                                entryToDelete.id
                             )
                         }
 
                         navController.popBackStack()
                     },
-                    onSelectList = { listId ->
+                    onSelectFolder = { folderId ->
                         currentEntry =
                             currentEntry?.copy(
-                                listId = listId
+                                folderId = folderId
                             )
                     },
-                    onCreateList = flowFireModel::createList,
+                    onCreateFolder =
+                        flowFireModel::createFolder,
                     onToggleTaskNote = {
                         val current =
                             currentEntry
@@ -688,7 +672,9 @@ fun FlowNavHost(
                                 currentEntry
                                     ?: return@launch
 
-                            if (entryToSave.text.isBlank()) {
+                            if (
+                                entryToSave.text.isBlank()
+                            ) {
                                 return@launch
                             }
 
@@ -704,8 +690,12 @@ fun FlowNavHost(
                             }
 
                             flowFireModel.addAttachments(
-                                entryId = entryToSave.id,
-                                uris = uriStrings.map(Uri::parse)
+                                entryId =
+                                    entryToSave.id,
+                                uris =
+                                    uriStrings.map(
+                                        Uri::parse
+                                    )
                             )
                         }
                     },
@@ -736,7 +726,8 @@ fun FlowNavHost(
                                 ).apply {
                                     setDataAndType(
                                         uri,
-                                        attachment.mimeType ?: "*/*"
+                                        attachment.mimeType
+                                            ?: "*/*"
                                     )
 
                                     addFlags(
@@ -744,7 +735,9 @@ fun FlowNavHost(
                                     )
                                 }
 
-                            context.startActivity(intent)
+                            context.startActivity(
+                                intent
+                            )
                         }.onFailure {
                             Toast.makeText(
                                 context,

@@ -32,6 +32,11 @@ interface AttachmentDao {
         attachment: Attachment
     )
 
+    @Insert
+    suspend fun insertAll(
+        attachments: List<Attachment>
+    )
+
     @Delete
     suspend fun delete(
         attachment: Attachment
@@ -43,5 +48,16 @@ interface AttachmentDao {
     )
     suspend fun deleteForEntry(
         entryId: String
+    )
+
+    @Query(
+        "DELETE FROM attachments " +
+                "WHERE entryId IN (" +
+                "SELECT id FROM notes " +
+                "WHERE folderId = :folderId" +
+                ")"
+    )
+    suspend fun deleteForFolder(
+        folderId: String
     )
 }

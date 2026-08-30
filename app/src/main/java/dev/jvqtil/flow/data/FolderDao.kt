@@ -9,55 +9,55 @@ import androidx.room3.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface EntryListDao {
+interface FolderDao {
 
     @Query(
-        "SELECT * FROM lists " +
+        "SELECT * FROM folders " +
                 "ORDER BY position ASC"
     )
-    fun observeLists(): Flow<List<EntryList>>
+    fun observeFolders(): Flow<List<Folder>>
 
     @Query(
-        "SELECT * FROM lists " +
+        "SELECT * FROM folders " +
                 "ORDER BY position ASC"
     )
-    suspend fun getAllLists(): List<EntryList>
+    suspend fun getAllFolders(): List<Folder>
 
     @Query(
-        "SELECT * FROM lists " +
+        "SELECT * FROM folders " +
                 "WHERE id = :id " +
                 "LIMIT 1"
     )
     suspend fun getById(
         id: String
-    ): EntryList?
+    ): Folder?
 
     @Query(
-        "SELECT * FROM lists " +
+        "SELECT * FROM folders " +
                 "WHERE id = :id " +
                 "LIMIT 1"
     )
     fun observeById(
         id: String
-    ): Flow<EntryList?>
+    ): Flow<Folder?>
 
     @Insert
     suspend fun insert(
-        list: EntryList
+        folder: Folder
     )
 
     @Update
     suspend fun update(
-        list: EntryList
+        folder: Folder
     )
 
     @Delete
     suspend fun delete(
-        list: EntryList
+        folder: Folder
     )
 
     @Upsert
     suspend fun upsert(
-        list: EntryList
+        folder: Folder
     )
 }

@@ -66,13 +66,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.jvqtil.flow.R
-import dev.jvqtil.flow.data.ALL_LIST_ID
 import dev.jvqtil.flow.data.Attachment
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
-import dev.jvqtil.flow.ui.EntryListUiModel
+import dev.jvqtil.flow.data.MASTER_FOLDER_ID
 import dev.jvqtil.flow.ui.EntryUiModel
-import dev.jvqtil.flow.ui.components.ListChoiceBottomSheet
-import dev.jvqtil.flow.ui.components.NewListBottomSheet
+import dev.jvqtil.flow.ui.FolderUiModel
+import dev.jvqtil.flow.ui.components.FolderChoiceBottomSheet
+import dev.jvqtil.flow.ui.components.NewFolderBottomSheet
 import dev.jvqtil.flow.ui.components.UndoPopup
 import dev.jvqtil.flow.ui.models.EditorFont
 import dev.jvqtil.flow.ui.models.KeyboardMode
@@ -86,8 +86,8 @@ import kotlin.time.Duration.Companion.milliseconds
 fun EditorScreen(
     entry: EntryUiModel,
     attachments: List<Attachment>,
-    lists: List<EntryListUiModel>,
-    selectedListId: String,
+    folders: List<FolderUiModel>,
+    selectedFolderId: String,
     autoFocus: Boolean,
     uiFont: UiFont,
     editorFont: EditorFont,
@@ -95,36 +95,30 @@ fun EditorScreen(
     onBack: () -> Unit,
     onTextChange: (String) -> Unit,
     onDelete: () -> Unit,
-    onSelectList: (String) -> Unit,
-    onCreateList: suspend (String) -> String?,
+    onSelectFolder: (String) -> Unit,
+    onCreateFolder: suspend (String) -> String?,
     onToggleTaskNote: () -> Unit,
     onAddAttachment: (List<String>) -> Unit,
     onOpenAttachment: (Attachment) -> Unit,
     onDeleteAttachment: (Attachment) -> Unit
 ) {
-    val placeholders =
-        stringArrayResource(
-            R.array.editor_placeholders
-        )
+    val placeholders = stringArrayResource(
+        R.array.editor_placeholders
+    )
 
-    val chosenPlaceholder =
-        remember {
-            placeholders.random()
-        }
+    val chosenPlaceholder = remember {
+        placeholders.random()
+    }
 
-    val focusRequester =
-        remember {
-            FocusRequester()
-        }
+    val focusRequester = remember {
+        FocusRequester()
+    }
 
-    val focusManager =
-        LocalFocusManager.current
+    val focusManager = LocalFocusManager.current
 
-    val scope =
-        rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 
-    val density =
-        LocalDensity.current
+    val density = LocalDensity.current
 
     val keyboardVisible =
         WindowInsets.ime.getBottom(density) > 0
@@ -133,15 +127,15 @@ fun EditorScreen(
         mutableStateOf(false)
     }
 
-    var showListPicker by remember {
+    var showFolderPicker by remember {
         mutableStateOf(false)
     }
 
-    var showNewListSheet by remember {
+    var showNewFolderSheet by remember {
         mutableStateOf(false)
     }
 
-    var newListName by remember {
+    var newFolderName by remember {
         mutableStateOf("")
     }
 
@@ -152,8 +146,7 @@ fun EditorScreen(
         }
     }
 
-    val cursorVisible =
-        keyboardVisible && hasFocus
+    val cursorVisible = keyboardVisible && hasFocus
 
     val editorFontFamily =
         when (editorFont) {
@@ -166,8 +159,7 @@ fun EditorScreen(
 
     val attachmentLauncher =
         rememberLauncherForActivityResult(
-            contract =
-                ActivityResultContracts.OpenMultipleDocuments()
+            contract = ActivityResultContracts.OpenMultipleDocuments()
         ) { uris ->
             if (uris.isNotEmpty()) {
                 onAddAttachment(
@@ -180,10 +172,9 @@ fun EditorScreen(
         mutableStateOf<Attachment?>(null)
     }
 
-    val selectedList =
-        lists.firstOrNull {
-            it.id == selectedListId
-        }
+    val selectedFolder = folders.firstOrNull {
+        it.id == selectedFolderId
+    }
 
     BasicTextField(
         value = entry.text,
@@ -192,162 +183,131 @@ fun EditorScreen(
             when (keyboardMode) {
                 KeyboardMode.NORMAL ->
                     KeyboardOptions(
-                        keyboardType =
-                            KeyboardType.Text,
-                        capitalization =
-                            KeyboardCapitalization.Sentences,
+                        keyboardType = KeyboardType.Text,
+                        capitalization = KeyboardCapitalization.Sentences,
                         autoCorrectEnabled = true
                     )
 
                 KeyboardMode.CODE ->
                     KeyboardOptions(
-                        keyboardType =
-                            KeyboardType.Ascii,
-                        capitalization =
-                            KeyboardCapitalization.None,
+                        keyboardType = KeyboardType.Ascii,
+                        capitalization = KeyboardCapitalization.None,
                         autoCorrectEnabled = false
                     )
             },
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(
-                    MaterialTheme.colorScheme.background
-                )
-                .focusRequester(
-                    focusRequester
-                )
-                .onFocusChanged {
-                    hasFocus = it.isFocused
-                }
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .imePadding(),
-        textStyle =
-            TextStyle(
-                fontFamily = editorFontFamily,
-                color =
-                    MaterialTheme.colorScheme.onBackground,
-                fontSize = 17.sp,
-                lineHeight = 26.sp
-            ),
-        cursorBrush =
-            SolidColor(
-                if (cursorVisible) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    Color.Transparent
-                }
-            ),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                MaterialTheme.colorScheme.background
+            )
+            .focusRequester(focusRequester)
+            .onFocusChanged {
+                hasFocus = it.isFocused
+            }
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding(),
+        textStyle = TextStyle(
+            fontFamily = editorFontFamily,
+            color = MaterialTheme.colorScheme.onBackground,
+            fontSize = 17.sp,
+            lineHeight = 26.sp
+        ),
+        cursorBrush = SolidColor(
+            if (cursorVisible) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                Color.Transparent
+            }
+        ),
         onTextLayout = {},
         decorationBox = { innerTextField ->
-
             Box(
-                modifier =
-                    Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize()
             ) {
                 IconButton(
                     onClick = {
-                        focusManager.clearFocus(
-                            force = true
-                        )
-
+                        focusManager.clearFocus(force = true)
                         hasFocus = false
-
                         onBack()
                     },
-                    modifier =
-                        Modifier.padding(8.dp)
+                    modifier = Modifier.padding(8.dp)
                 ) {
                     Icon(
-                        imageVector =
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint =
-                            MaterialTheme.colorScheme.onBackground
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(
+                            R.string.back_label
+                        ),
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
 
                 Row(
-                    modifier =
-                        Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(
-                                top = 8.dp,
-                                start = 64.dp,
-                                end = 8.dp
-                            ),
-                    verticalAlignment =
-                        Alignment.CenterVertically,
-                    horizontalArrangement =
-                        Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(
+                            top = 8.dp, start = 64.dp, end = 8.dp
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Box(
-                        modifier =
-                            Modifier
-                                .height(42.dp)
-                                .widthIn(max = 140.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceContainer,
-                                    RoundedCornerShape(16.dp)
-                                )
-                                .clickable {
-                                    showListPicker = true
-                                }
-                                .padding(horizontal = 12.dp),
+                        modifier = Modifier
+                            .height(42.dp)
+                            .widthIn(max = 140.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceContainer,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .clickable {
+                                showFolderPicker = true
+                            }
+                            .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
-                            modifier =
-                                Modifier.padding(horizontal = 8.dp),
-                            verticalAlignment =
-                                Alignment.CenterVertically,
-                            horizontalArrangement =
-                                Arrangement.spacedBy(4.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Folder,
                                 contentDescription = null,
-                                tint =
-                                    MaterialTheme.colorScheme.onBackground,
+                                tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(20.dp)
                             )
 
                             Text(
-                                text =
-                                    if (selectedListId == ALL_LIST_ID) {
-                                        stringResource(R.string.all_list_label)
-                                    } else {
-                                        selectedList?.name.orEmpty()
-                                    },
+                                text = if (selectedFolder?.id == MASTER_FOLDER_ID &&
+                                    selectedFolder.name.isBlank()
+                                ) stringResource(
+                                    R.string.master_folder_label
+                                )
+                                else selectedFolder?.name.orEmpty(),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.labelLarge,
-                                color =
-                                    MaterialTheme.colorScheme.onBackground
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                         }
                     }
 
                     Box(
-                        modifier =
-                            Modifier
-                                .height(42.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceContainer,
-                                    RoundedCornerShape(16.dp)
-                                )
-                                .clickable(
-                                    onClick = onToggleTaskNote
-                                )
-                                .padding(horizontal = 12.dp),
+                        modifier = Modifier
+                            .height(42.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceContainer,
+                                RoundedCornerShape(16.dp)
+                            )
+                            .clickable(
+                                onClick = onToggleTaskNote
+                            )
+                            .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
-                            verticalAlignment =
-                                Alignment.CenterVertically,
-                            horizontalArrangement =
-                                Arrangement.spacedBy(6.dp)
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.SwapHoriz,
@@ -361,8 +321,7 @@ fun EditorScreen(
                                             R.string.convert_to_task_label
                                         )
                                     },
-                                tint =
-                                    MaterialTheme.colorScheme.onBackground,
+                                tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(20.dp)
                             )
 
@@ -377,10 +336,8 @@ fun EditorScreen(
                                             R.string.note_label
                                         )
                                     },
-                                color =
-                                    MaterialTheme.colorScheme.onBackground,
-                                style =
-                                    MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                style = MaterialTheme.typography.labelLarge,
                                 maxLines = 1,
                                 softWrap = false
                             )
@@ -388,24 +345,22 @@ fun EditorScreen(
                     }
 
                     Box(
-                        modifier =
-                            Modifier
-                                .size(42.dp)
-                                .clickable(
-                                    enabled = entry.text.isNotBlank()
-                                ) {
-                                    attachmentLauncher.launch(
-                                        arrayOf("*/*")
-                                    )
-                                },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clickable(
+                                enabled = entry.text.isNotBlank()
+                            ) {
+                                attachmentLauncher.launch(
+                                    arrayOf("*/*")
+                                )
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.AttachFile,
-                            contentDescription =
-                                stringResource(
-                                    R.string.attach_file_label
-                                ),
+                            contentDescription = stringResource(
+                                R.string.attach_file_label
+                            ),
                             tint =
                                 if (entry.text.isNotBlank()) {
                                     MaterialTheme.colorScheme.onBackground
@@ -419,66 +374,45 @@ fun EditorScreen(
                     }
 
                     Box(
-                        modifier =
-                            Modifier
-                                .size(42.dp)
-                                .clickable {
-                                    focusManager.clearFocus(
-                                        force = true
-                                    )
-
-                                    hasFocus = false
-
-                                    onDelete()
-                                },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clickable {
+                                focusManager.clearFocus(force = true)
+                                hasFocus = false
+                                onDelete()
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
-                            contentDescription =
-                                stringResource(
-                                    R.string.delete_label
-                                ),
-                            tint =
-                                MaterialTheme.colorScheme.onBackground,
+                            contentDescription = stringResource(
+                                R.string.delete_label
+                            ),
+                            tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 }
 
                 Column(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(
-                                top = 76.dp,
-                                start = 20.dp,
-                                end = 20.dp,
-                                bottom = 12.dp
-                            )
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            top = 76.dp, start = 20.dp, end = 20.dp, bottom = 12.dp
+                        )
                 ) {
                     Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
                     ) {
                         if (entry.text.isEmpty()) {
                             Text(
-                                text =
-                                    chosenPlaceholder,
-                                style =
-                                    MaterialTheme
-                                        .typography
-                                        .bodyLarge
-                                        .copy(
-                                            fontFamily =
-                                                editorFontFamily
-                                        ),
-                                color =
-                                    MaterialTheme
-                                        .colorScheme
-                                        .onSurfaceVariant
+                                text = chosenPlaceholder,
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontFamily = editorFontFamily
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
@@ -486,40 +420,28 @@ fun EditorScreen(
                     }
 
                     LazyRow(
-                        horizontalArrangement =
-                            Arrangement.spacedBy(8.dp),
-                        contentPadding =
-                            PaddingValues(
-                                horizontal = 4.dp
-                            )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(
+                            horizontal = 4.dp
+                        )
                     ) {
                         items(
                             items = attachments,
                             key = { it.id }
                         ) { attachment ->
-
                             val visible =
-                                deletedAttachment?.id !=
-                                        attachment.id
+                                deletedAttachment?.id != attachment.id
 
                             AnimatedVisibility(
                                 visible = visible,
-                                enter =
-                                    slideInVertically(
-                                        initialOffsetY = {
-                                            it
-                                        },
-                                        animationSpec =
-                                            tween(250)
-                                    ),
-                                exit =
-                                    slideOutVertically(
-                                        targetOffsetY = {
-                                            it * 2
-                                        },
-                                        animationSpec =
-                                            tween(300)
-                                    )
+                                enter = slideInVertically(
+                                    initialOffsetY = { it },
+                                    animationSpec = tween(250)
+                                ),
+                                exit = slideOutVertically(
+                                    targetOffsetY = { it * 2 },
+                                    animationSpec = tween(300)
+                                )
                             ) {
                                 AttachmentPreview(
                                     attachment = attachment,
@@ -529,12 +451,8 @@ fun EditorScreen(
                                         )
                                     },
                                     onDelete = {
-                                        if (
-                                            deletedAttachment ==
-                                            null
-                                        ) {
-                                            deletedAttachment =
-                                                attachment
+                                        if (deletedAttachment == null) {
+                                            deletedAttachment = attachment
                                         }
                                     }
                                 )
@@ -546,48 +464,50 @@ fun EditorScreen(
         }
     )
 
-    if (showListPicker) {
-        ListChoiceBottomSheet(
-            lists = lists,
-            selectedListId = selectedListId,
-            onSelect = onSelectList,
-            onCreateList = {
-                showListPicker = false
-                newListName = ""
-                showNewListSheet = true
+    if (showFolderPicker) {
+        FolderChoiceBottomSheet(
+            folders = folders,
+            selectedFolderId = selectedFolderId,
+            onSelect = {
+                onSelectFolder(it)
+                showFolderPicker = false
+            },
+            onCreateFolder = {
+                showFolderPicker = false
+                newFolderName = ""
+                showNewFolderSheet = true
             },
             onDismiss = {
-                showListPicker = false
+                showFolderPicker = false
             }
         )
     }
 
-    if (showNewListSheet) {
-        NewListBottomSheet(
-            value = newListName,
+    if (showNewFolderSheet) {
+        NewFolderBottomSheet(
+            value = newFolderName,
             onValueChange = {
-                newListName = it
+                newFolderName = it
             },
             onCreate = {
-                val name = newListName.trim()
+                val name = newFolderName.trim()
 
                 if (name.isNotBlank()) {
                     scope.launch {
-                        val listId =
-                            onCreateList(name)
+                        val folderId = onCreateFolder(name)
 
-                        if (listId != null) {
-                            onSelectList(listId)
+                        if (folderId != null) {
+                            onSelectFolder(folderId)
                         }
 
-                        newListName = ""
-                        showNewListSheet = false
+                        newFolderName = ""
+                        showNewFolderSheet = false
                     }
                 }
             },
             onDismiss = {
-                newListName = ""
-                showNewListSheet = false
+                newFolderName = ""
+                showNewFolderSheet = false
             }
         )
     }
@@ -605,10 +525,7 @@ fun EditorScreen(
                 deletedAttachment = null
             },
             onTimeout = {
-                onDeleteAttachment(
-                    attachment
-                )
-
+                onDeleteAttachment(attachment)
                 deletedAttachment = null
             }
         )
@@ -622,21 +539,16 @@ private fun AttachmentPreview(
     onDelete: () -> Unit
 ) {
     Box(
-        modifier =
-            Modifier
-                .size(
-                    width = 180.dp,
-                    height = 56.dp
-                )
-                .background(
-                    MaterialTheme
-                        .colorScheme
-                        .surfaceContainer,
-                    RoundedCornerShape(12.dp)
-                )
-                .clickable {
-                    onOpen()
-                }
+        modifier = Modifier
+            .size(
+                width = 180.dp, height = 56.dp
+            )
+            .background(
+                MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp)
+            )
+            .clickable {
+                onOpen()
+            }
     ) {
         Text(
             text = attachment.fileName,
@@ -644,35 +556,25 @@ private fun AttachmentPreview(
             style = MaterialTheme.typography.bodyMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier =
-                Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(
-                        start = 12.dp,
-                        end = 40.dp
-                    )
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(
+                    start = 12.dp, end = 40.dp
+                )
         )
 
         IconButton(
             onClick = onDelete,
-            modifier =
-                Modifier
-                    .align(
-                        Alignment.CenterEnd
-                    )
-                    .size(40.dp)
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .size(40.dp)
         ) {
             Icon(
-                imageVector =
-                    Icons.Default.DeleteOutline,
-                contentDescription =
-                    stringResource(
-                        R.string.delete_label
-                    ),
-                tint =
-                    MaterialTheme
-                        .colorScheme
-                        .onSurfaceVariant
+                imageVector = Icons.Default.DeleteOutline,
+                contentDescription = stringResource(
+                    R.string.delete_label
+                ),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

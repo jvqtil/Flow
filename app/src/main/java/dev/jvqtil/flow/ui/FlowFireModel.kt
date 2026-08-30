@@ -4,14 +4,13 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import dev.jvqtil.flow.data.ALL_LIST_ID
 import dev.jvqtil.flow.data.Attachment
-import dev.jvqtil.flow.data.DeletedListSnapshot
 import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.data.Entry
-import dev.jvqtil.flow.data.EntryList
 import dev.jvqtil.flow.data.FlowRepository
+import dev.jvqtil.flow.data.Folder
+import dev.jvqtil.flow.data.MASTER_FOLDER_ID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,28 +25,28 @@ data class EntryUiModel(
     val text: String,
     val type: String = ENTRY_TYPE_NOTE,
     val completed: Boolean = false,
-    val listId: String = ALL_LIST_ID
+    val folderId: String
 )
 
-data class EntryListUiModel(
-    val id: String,
-    val name: String
+data class FolderUiModel(
+    val id: String, val name: String
 )
 
 sealed interface UndoOperation {
+
     data class EntryDeleted(
         val entry: Entry
     ) : UndoOperation
 
-    data class ListDeleted(
-        val snapshot: DeletedListSnapshot
+    data class FolderDeleted(
+        val snapshot: dev.jvqtil.flow.data.DeletedFolderSnapshot
     ) : UndoOperation
 }
 
 data class FlowUiState(
     val entries: List<EntryUiModel> = emptyList(),
-    val lists: List<EntryListUiModel> = emptyList(),
-    val selectedListId: String = ALL_LIST_ID,
+    val folders: List<FolderUiModel> = emptyList(),
+    val selectedFolderId: String? = null,
     val pendingDeletedEntries: Map<String, Entry> = emptyMap(),
     val undoOperation: UndoOperation? = null,
     val restoringEntryId: String? = null,
@@ -70,181 +69,46 @@ class FlowFireModel(
         Mutex()
 
     init {
-        observeLists()
+        observeFolders()
         observeEntries()
-    }
 
-    private fun observeLists() {
         viewModelScope.launch {
-            repository.observeLists().collect { lists ->
-
-                val sortedLists =
-                    lists.sortedBy {
-                        it.position
-                    }
-
-                val normalizedLists =
-                    listOf(
-                        EntryList(
-                            id = ALL_LIST_ID,
-                            name = "All",
-                            position = Long.MIN_VALUE
+            databaseMutex.withLock {
+                if (repository.getAllFolders().isEmpty()) {
+                    repository.insertFolder(
+                        Folder(
+                            id = MASTER_FOLDER_ID,
+                            name = "",
+                            position = 0L
                         )
-                    ) + sortedLists.filter {
-                        it.id != ALL_LIST_ID
-                    }
-
-                _uiState.update { state ->
-
-                    val selectedStillExists =
-                        normalizedLists.any {
-                            it.id ==
-                                    state.selectedListId
-                        }
-
-                    state.copy(
-                        lists =
-                            normalizedLists.map(
-                                ::toListUiModel
-                            ),
-                        selectedListId =
-                            if (selectedStillExists) {
-                                state.selectedListId
-                            } else {
-                                ALL_LIST_ID
-                            }
                     )
                 }
             }
         }
     }
 
-    suspend fun createList(
-        name: String
-    ): String? {
-        val normalizedName =
-            name.trim()
-
-        if (normalizedName.isBlank()) {
-            return null
-        }
-
-        return databaseMutex.withLock {
-            val lists =
-                repository.getAllLists()
-
-            val nextPosition =
-                (
-                        lists
-                            .filter {
-                                it.id != ALL_LIST_ID
-                            }
-                            .maxOfOrNull {
-                                it.position
-                            }
-                            ?: 0L
-                        ) + 1L
-
-            val list =
-                EntryList(
-                    name = normalizedName,
-                    position = nextPosition
-                )
-
-            repository.insertList(
-                list
-            )
-
-            list.id
-        }
-    }
-
-    fun selectList(
-        listId: String
-    ) {
-        _uiState.update {
-            it.copy(
-                selectedListId = listId
-            )
-        }
-    }
-
-    fun renameList(
-        listId: String,
-        name: String
-    ) {
-        val normalizedName = name.trim()
-
-        if (
-            listId == ALL_LIST_ID ||
-            normalizedName.isBlank()
-        ) {
-            return
-        }
-
+    private fun observeFolders() {
         viewModelScope.launch {
-            databaseMutex.withLock {
-                val list =
-                    repository.findListById(listId)
-                        ?: return@withLock
-
-                repository.updateList(
-                    list.copy(
-                        name = normalizedName
-                    )
-                )
-            }
-        }
-    }
-
-    fun deleteList(
-        listId: String
-    ) {
-        if (listId == ALL_LIST_ID) {
-            return
-        }
-
-        viewModelScope.launch {
-            databaseMutex.withLock {
-
-                val list =
-                    repository.findListById(listId)
-                        ?: return@withLock
-
-                val entries =
-                    repository.getEntries(listId)
-
-                val snapshot =
-                    DeletedListSnapshot(
-                        list = list,
-                        entries = entries
-                    )
-
-                repository.deleteListWithEntries(
-                    list
-                )
+            repository.observeFolders().collect { folders ->
 
                 _uiState.update { state ->
+
+                    val selectedFolderId = state.selectedFolderId
+
+                    val selectedExists = selectedFolderId != null && folders.any {
+                        it.id == selectedFolderId
+                    }
+
                     state.copy(
-                        selectedListId =
-                            if (
-                                state.selectedListId == listId
-                            ) {
-                                ALL_LIST_ID
-                            } else {
-                                state.selectedListId
-                            },
+                        folders = folders.map(
+                            ::toUiModel
+                        ),
 
-                        undoOperation =
-                            UndoOperation.ListDeleted(
-                                snapshot = snapshot
-                            ),
-
-                        pendingDeletedEntries =
-                            state.pendingDeletedEntries -
-                                    entries.map {
-                                        it.id
-                                    }.toSet()
+                        selectedFolderId = if (selectedExists) {
+                            selectedFolderId
+                        } else {
+                            folders.firstOrNull()?.id
+                        }
                     )
                 }
             }
@@ -257,10 +121,110 @@ class FlowFireModel(
 
                 _uiState.update {
                     it.copy(
-                        entries =
-                            entries.map(
-                                ::toUiModel
-                            )
+                        entries = entries.map(
+                            ::toUiModel
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    suspend fun createFolder(
+        name: String
+    ): String? {
+
+        val normalizedName = name.trim()
+
+        if (normalizedName.isBlank()) {
+            return null
+        }
+
+        return databaseMutex.withLock {
+
+            val folders = repository.getAllFolders()
+
+            val nextPosition = (folders.maxOfOrNull {
+                it.position
+            } ?: -1L) + 1L
+
+            val folder = Folder(
+                name = normalizedName, position = nextPosition
+            )
+
+            repository.insertFolder(
+                folder
+            )
+
+            folder.id
+        }
+    }
+
+    fun selectFolder(
+        folderId: String
+    ) {
+        _uiState.update {
+            it.copy(
+                selectedFolderId = folderId
+            )
+        }
+    }
+
+    fun renameFolder(
+        folderId: String, name: String
+    ) {
+
+        val normalizedName = name.trim()
+
+        if (folderId != MASTER_FOLDER_ID && normalizedName.isBlank()) {
+            return
+        }
+
+        viewModelScope.launch {
+
+            databaseMutex.withLock {
+
+                val folder = repository.findFolderById(
+                    folderId
+                ) ?: return@withLock
+
+                repository.updateFolder(
+                    folder.copy(
+                        name = normalizedName
+                    )
+                )
+            }
+        }
+    }
+
+    fun deleteFolder(
+        folderId: String
+    ) {
+
+        viewModelScope.launch {
+
+            databaseMutex.withLock {
+
+                val folder = repository.findFolderById(
+                    folderId
+                ) ?: return@withLock
+
+                val snapshot = repository.deleteFolderWithEntries(
+                    folder
+                )
+
+                _uiState.update { state ->
+
+                    state.copy(
+                        selectedFolderId = if (state.selectedFolderId == folderId) {
+                            null
+                        } else {
+                            state.selectedFolderId
+                        },
+
+                        undoOperation = UndoOperation.FolderDeleted(
+                            snapshot
+                        )
                     )
                 }
             }
@@ -270,34 +234,35 @@ class FlowFireModel(
     suspend fun getEntry(
         id: String
     ): EntryUiModel? {
+
         return databaseMutex.withLock {
-            repository
-                .findById(id)
-                ?.let(::toUiModel)
+
+            repository.findById(id)?.let(::toUiModel)
         }
     }
 
     fun createEntry(): EntryUiModel {
-        val selectedListId =
-            _uiState.value.selectedListId
 
         return EntryUiModel(
-            id =
-                UUID.randomUUID()
-                    .toString(),
+            id = UUID.randomUUID().toString(),
+
             text = "",
-            listId =
-                selectedListId
+
+            folderId = _uiState.value.selectedFolderId ?: ""
         )
     }
 
     suspend fun ensureEntryExists(
         entry: EntryUiModel
     ) {
+
+        if (entry.folderId.isBlank()) {
+            return
+        }
+
         databaseMutex.withLock {
 
-            if (
-                repository.findById(
+            if (repository.findById(
                     entry.id
                 ) != null
             ) {
@@ -305,14 +270,11 @@ class FlowFireModel(
             }
 
             repository.insertAtTop(
-                entry
-                    .copy(
-                        text =
-                            trimEmptyLines(
-                                entry.text
-                            )
+                entry.copy(
+                    text = trimEmptyLines(
+                        entry.text
                     )
-                    .toDataModel()
+                ).toDataModel()
             )
         }
     }
@@ -320,17 +282,14 @@ class FlowFireModel(
     fun saveNewEntry(
         entry: EntryUiModel
     ) {
-        val normalizedEntry =
-            entry.copy(
-                text =
-                    trimEmptyLines(
-                        entry.text
-                    )
-            )
 
-        if (
-            normalizedEntry.text.isBlank()
-        ) {
+        val normalizedEntry = entry.copy(
+            text = trimEmptyLines(
+                entry.text
+            )
+        )
+
+        if (normalizedEntry.text.isBlank() || normalizedEntry.folderId.isBlank()) {
             return
         }
 
@@ -346,31 +305,24 @@ class FlowFireModel(
     }
 
     fun updateEntry(
-        entry: EntryUiModel,
-        hasAttachments: Boolean
+        entry: EntryUiModel, hasAttachments: Boolean
     ) {
-        val normalizedEntry =
-            entry.copy(
-                text =
-                    trimEmptyLines(
-                        entry.text
-                    )
+
+        val normalizedEntry = entry.copy(
+            text = trimEmptyLines(
+                entry.text
             )
+        )
 
         viewModelScope.launch {
 
             databaseMutex.withLock {
 
-                val existing =
-                    repository.findById(
-                        normalizedEntry.id
-                    )
-                        ?: return@withLock
+                val existing = repository.findById(
+                    normalizedEntry.id
+                ) ?: return@withLock
 
-                if (
-                    normalizedEntry.text.isBlank() &&
-                    !hasAttachments
-                ) {
+                if (normalizedEntry.text.isBlank() && !hasAttachments) {
                     deleteExistingEntry(
                         existing
                     )
@@ -380,10 +332,9 @@ class FlowFireModel(
 
                 repository.update(
                     normalizedEntry.toDataModel(
-                        createdAt =
-                            existing.createdAt,
-                        position =
-                            existing.position
+                        createdAt = existing.createdAt,
+
+                        position = existing.position
                     )
                 )
             }
@@ -391,70 +342,63 @@ class FlowFireModel(
     }
 
     fun updateEntriesPositions(
-        entriesIds: List<String>
+        folderId: String, entryIds: List<String>
     ) {
-        val selectedListId =
-            _uiState.value.selectedListId
 
         viewModelScope.launch {
 
             databaseMutex.withLock {
 
                 repository.updateEntriesPositions(
-                    listId =
-                        selectedListId,
-                    entryIds =
-                        entriesIds
+                    folderId = folderId, entryIds = entryIds
                 )
             }
         }
     }
 
-    fun moveEntryToList(
-        entryId: String,
-        targetListId: String
+    fun moveEntryToFolder(
+        entryId: String, targetFolderId: String
     ) {
-        if (targetListId == ALL_LIST_ID) {
-            return
-        }
 
         viewModelScope.launch {
+
             databaseMutex.withLock {
-                val entry =
-                    repository.findById(entryId)
-                        ?: return@withLock
 
-                val targetList =
-                    repository.findListById(targetListId)
-                        ?: return@withLock
+                val entry = repository.findById(
+                    entryId
+                ) ?: return@withLock
 
-                if (entry.listId == targetList.id) {
+                repository.findFolderById(
+                    targetFolderId
+                ) ?: return@withLock
+
+                if (entry.folderId == targetFolderId) {
                     return@withLock
                 }
 
-                repository.moveEntryToList(
+                repository.moveEntryToFolder(
                     entry = entry,
-                    targetListId = targetList.id
+
+                    targetFolderId = targetFolderId
                 )
             }
         }
     }
 
     fun deleteEntry(
-        entry: EntryUiModel
+        entryId: String
     ) {
+
         viewModelScope.launch {
 
             databaseMutex.withLock {
 
-                val existing =
-                    repository.findById(
-                        entry.id
-                    )
-                        ?: return@withLock
+                val entry = repository.findById(
+                    entryId
+                ) ?: return@withLock
 
                 deleteExistingEntry(
-                    existing
+                    entry
                 )
             }
         }
@@ -463,26 +407,21 @@ class FlowFireModel(
     private suspend fun deleteExistingEntry(
         entry: Entry
     ) {
+
         repository.delete(
             entry
         )
 
         _uiState.update {
             it.copy(
-                pendingDeletedEntries =
-                    it.pendingDeletedEntries +
-                            (
-                                    entry.id to entry
-                                    ),
 
-                undoOperation =
-                    UndoOperation.EntryDeleted(
-                        entry = entry
-                    ),
+                pendingDeletedEntries = it.pendingDeletedEntries + (entry.id to entry),
 
-                deletingEntriesIds =
-                    it.deletingEntriesIds +
-                            entry.id,
+                undoOperation = UndoOperation.EntryDeleted(
+                    entry
+                ),
+
+                deletingEntriesIds = it.deletingEntriesIds + entry.id,
 
                 restoringEntryId = null
             )
@@ -490,44 +429,35 @@ class FlowFireModel(
     }
 
     fun undoDelete() {
+
         viewModelScope.launch {
+
             databaseMutex.withLock {
 
-                when (
-                    val operation =
-                        _uiState.value.undoOperation
-                ) {
+                when (val operation = _uiState.value.undoOperation) {
 
                     is UndoOperation.EntryDeleted -> {
 
-                        val entry =
-                            operation.entry
-
                         repository.restore(
-                            entry
+                            operation.entry
                         )
 
                         _uiState.update {
                             it.copy(
-                                pendingDeletedEntries =
-                                    it.pendingDeletedEntries -
-                                            entry.id,
+
+                                pendingDeletedEntries = it.pendingDeletedEntries - operation.entry.id,
 
                                 undoOperation = null,
 
-                                deletingEntriesIds =
-                                    it.deletingEntriesIds -
-                                            entry.id,
+                                deletingEntriesIds = it.deletingEntriesIds - operation.entry.id,
 
-                                restoringEntryId =
-                                    entry.id
+                                restoringEntryId = operation.entry.id
                             )
                         }
                     }
 
-                    is UndoOperation.ListDeleted -> {
-
-                        repository.restoreListWithEntries(
+                    is UndoOperation.FolderDeleted -> {
+                        repository.restoreFolderWithEntries(
                             operation.snapshot
                         )
 
@@ -538,40 +468,33 @@ class FlowFireModel(
                         }
                     }
 
-                    null -> {
-                        return@withLock
-                    }
+                    null -> Unit
                 }
             }
         }
     }
 
     fun clearUndo() {
+
         viewModelScope.launch {
+
             databaseMutex.withLock {
 
-                when (
-                    val operation =
-                        _uiState.value.undoOperation
-                ) {
+                when (val operation = _uiState.value.undoOperation) {
 
                     is UndoOperation.EntryDeleted -> {
-
                         repository.purgeAttachments(
                             operation.entry.id
                         )
                     }
 
-                    is UndoOperation.ListDeleted -> {
-
-                        repository.purgeListAttachments(
-                            operation.snapshot.entries
+                    is UndoOperation.FolderDeleted -> {
+                        repository.permanentlyDeleteFolderSnapshot(
+                            operation.snapshot
                         )
                     }
 
-                    null -> {
-                        return@withLock
-                    }
+                    null -> Unit
                 }
 
                 _uiState.update {
@@ -586,19 +509,19 @@ class FlowFireModel(
     fun clearDeletedAnimation(
         id: String
     ) {
+
         _uiState.update {
             it.copy(
-                pendingDeletedEntries =
-                    it.pendingDeletedEntries -
-                            id,
-                deletingEntriesIds =
-                    it.deletingEntriesIds -
-                            id
+
+                pendingDeletedEntries = it.pendingDeletedEntries - id,
+
+                deletingEntriesIds = it.deletingEntriesIds - id
             )
         }
     }
 
     fun clearRestoringEntry() {
+
         _uiState.update {
             it.copy(
                 restoringEntryId = null
@@ -609,27 +532,22 @@ class FlowFireModel(
     fun toggleCompleted(
         entryId: String
     ) {
+
         viewModelScope.launch {
 
             databaseMutex.withLock {
 
-                val existing =
-                    repository.findById(
-                        entryId
-                    )
-                        ?: return@withLock
+                val entry = repository.findById(
+                    entryId
+                ) ?: return@withLock
 
-                if (
-                    existing.type !=
-                    ENTRY_TYPE_TASK
-                ) {
+                if (entry.type != ENTRY_TYPE_TASK) {
                     return@withLock
                 }
 
                 repository.update(
-                    existing.copy(
-                        completed =
-                            !existing.completed
+                    entry.copy(
+                        completed = !entry.completed
                     )
                 )
             }
@@ -639,38 +557,31 @@ class FlowFireModel(
     fun toggleTaskNote(
         entryId: String
     ) {
+
         viewModelScope.launch {
 
             databaseMutex.withLock {
 
-                val existing =
-                    repository.findById(
-                        entryId
-                    )
-                        ?: return@withLock
+                val entry = repository.findById(
+                    entryId
+                ) ?: return@withLock
 
-                val newType =
-                    if (
-                        existing.type ==
-                        ENTRY_TYPE_TASK
-                    ) {
-                        ENTRY_TYPE_NOTE
-                    } else {
-                        ENTRY_TYPE_TASK
-                    }
+                val type = if (entry.type == ENTRY_TYPE_TASK) {
+                    ENTRY_TYPE_NOTE
+                } else {
+                    ENTRY_TYPE_TASK
+                }
 
                 repository.update(
-                    existing.copy(
-                        type = newType,
-                        completed =
-                            if (
-                                newType ==
-                                ENTRY_TYPE_TASK
-                            ) {
-                                existing.completed
-                            } else {
-                                false
-                            }
+                    entry.copy(
+
+                        type = type,
+
+                        completed = if (type == ENTRY_TYPE_TASK) {
+                            entry.completed
+                        } else {
+                            false
+                        }
                     )
                 )
             }
@@ -678,13 +589,12 @@ class FlowFireModel(
     }
 
     suspend fun addAttachments(
-        entryId: String,
-        uris: List<Uri>
+        entryId: String, uris: List<Uri>
     ) {
+
         databaseMutex.withLock {
 
-            if (
-                repository.findById(
+            if (repository.findById(
                     entryId
                 ) == null
             ) {
@@ -694,9 +604,7 @@ class FlowFireModel(
             uris.forEach { uri ->
 
                 repository.insertAttachment(
-                    entryId =
-                        entryId,
-                    uri = uri
+                    entryId = entryId, uri = uri
                 )
             }
         }
@@ -705,35 +613,43 @@ class FlowFireModel(
     fun deleteAttachment(
         attachment: Attachment
     ) {
+
         viewModelScope.launch {
 
             databaseMutex.withLock {
 
-            repository.deleteAttachment(
+                repository.deleteAttachment(
                     attachment
                 )
             }
         }
     }
 
+    fun observeAttachments(
+        entryId: String
+    ) = repository.observeAttachments(
+        entryId
+    )
+
     private fun toUiModel(
         entry: Entry
     ): EntryUiModel {
+
         return EntryUiModel(
             id = entry.id,
             text = entry.text,
             type = entry.type,
             completed = entry.completed,
-            listId = entry.listId
+            folderId = entry.folderId
         )
     }
 
-    private fun toListUiModel(
-        list: EntryList
-    ): EntryListUiModel {
-        return EntryListUiModel(
-            id = list.id,
-            name = list.name
+    private fun toUiModel(
+        folder: Folder
+    ): FolderUiModel {
+
+        return FolderUiModel(
+            id = folder.id, name = folder.name
         )
     }
 
@@ -749,7 +665,7 @@ class FlowFireModel(
             position = position,
             type = type,
             completed = completed,
-            listId = listId
+            folderId = folderId
         )
     }
 }
@@ -762,11 +678,7 @@ class FlowFireModelFactory(
     override fun <T : ViewModel> create(
         modelClass: Class<T>
     ): T {
-
-        if (
-            modelClass.isAssignableFrom(
-                FlowFireModel::class.java
-            )
+        if (modelClass.isAssignableFrom(FlowFireModel::class.java)
         ) {
             return FlowFireModel(
                 repository = repository
@@ -782,17 +694,14 @@ class FlowFireModelFactory(
 private fun trimEmptyLines(
     text: String
 ): String {
-    return text
-        .replace(
+
+    return text.replace(
             Regex(
                 """\A(?:[ \t]*\r?\n)+"""
-            ),
-            ""
-        )
-        .replace(
+            ), ""
+    ).replace(
             Regex(
                 """(?:\r?\n[ \t]*)+\z"""
-            ),
-            ""
+            ), ""
         )
 }

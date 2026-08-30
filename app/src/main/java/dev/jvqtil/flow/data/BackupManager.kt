@@ -13,7 +13,7 @@ object BackupManager {
         context: Context,
         uri: Uri,
         entries: List<Entry>,
-        lists: List<EntryList>
+        folders: List<Folder>
     ) {
         val root = JSONObject()
 
@@ -22,32 +22,34 @@ object BackupManager {
             VERSION
         )
 
-        val listsArray = JSONArray()
+        val foldersArray = JSONArray()
 
-        lists.forEach { list ->
-            val jsonList = JSONObject()
+        folders.forEach { folder ->
+            val jsonFolder = JSONObject()
 
-            jsonList.put(
+            jsonFolder.put(
                 "id",
-                list.id
+                folder.id
             )
 
-            jsonList.put(
+            jsonFolder.put(
                 "name",
-                list.name
+                folder.name
             )
 
-            jsonList.put(
+            jsonFolder.put(
                 "position",
-                list.position
+                folder.position
             )
 
-            listsArray.put(jsonList)
+            foldersArray.put(
+                jsonFolder
+            )
         }
 
         root.put(
-            "lists",
-            listsArray
+            "folders",
+            foldersArray
         )
 
         val notesArray = JSONArray()
@@ -86,11 +88,13 @@ object BackupManager {
             )
 
             jsonNote.put(
-                "listId",
-                entry.listId
+                "folderId",
+                entry.folderId
             )
 
-            notesArray.put(jsonNote)
+            notesArray.put(
+                jsonNote
+            )
         }
 
         root.put(
@@ -113,7 +117,7 @@ object BackupManager {
     }
 
     data class BackupData(
-        val lists: List<EntryList>,
+        val folders: List<Folder>,
         val entries: List<Entry>
     )
 
@@ -151,19 +155,27 @@ object BackupManager {
             )
         }
 
-        val lists =
-            if (version >= 5) {
-                parseLists(
-                    root.optJSONArray("lists")
-                )
-            } else {
-                listOf(
-                    EntryList(
-                        id = ALL_LIST_ID,
-                        name = "All",
-                        position = 0L
+        val folders =
+            when (version) {
+                1, 2 -> {
+                    listOf(
+                        Folder(
+                            id = MASTER_FOLDER_ID,
+                            name = "Master",
+                            position = 0L
+                        )
                     )
-                )
+                }
+
+                5 -> {
+                    parseFolders(
+                        root.optJSONArray("folders")
+                    )
+                }
+
+                else -> {
+                    emptyList()
+                }
             }
 
         val notesArray =
@@ -186,16 +198,34 @@ object BackupManager {
             val id =
                 jsonNote.optString("id")
 
-            val text =
-                jsonNote.optString("text")
-
             if (id.isBlank()) {
                 continue
             }
 
+            val folderId =
+                when (version) {
+                    1, 2 -> {
+                        MASTER_FOLDER_ID
+                    }
+
+                    5 -> {
+                        jsonNote.optString(
+                            "folderId",
+                            MASTER_FOLDER_ID
+                        )
+                    }
+
+                    else -> {
+                        MASTER_FOLDER_ID
+                    }
+                }
+
             entries += Entry(
                 id = id,
-                text = text,
+                text =
+                    jsonNote.optString(
+                        "text"
+                    ),
                 createdAt =
                     jsonNote.optLong(
                         "createdAt",
@@ -224,83 +254,99 @@ object BackupManager {
                     } else {
                         false
                     },
-                listId =
-                    if (version >= 5) {
-                        jsonNote.optString(
-                            "listId",
-                            ALL_LIST_ID
-                        )
-                    } else {
-                        ALL_LIST_ID
-                    }
+                folderId = folderId
             )
         }
 
         return BackupData(
-            lists = lists,
+            folders = folders,
             entries = entries
         )
     }
 
-    private fun parseLists(
-        listsArray: JSONArray?
-    ): List<EntryList> {
-        if (listsArray == null) {
+    private fun parseFolders(
+        foldersArray: JSONArray?
+    ): List<Folder> {
+        if (foldersArray == null) {
             return listOf(
-                EntryList(
-                    id = ALL_LIST_ID,
-                    name = "All",
+                Folder(
+                    id = MASTER_FOLDER_ID,
+                    name = "Master",
                     position = 0L
                 )
             )
         }
 
-        val lists =
-            mutableListOf<EntryList>()
+        val folders =
+            mutableListOf<Folder>()
 
         for (
         index in
-        0 until listsArray.length()
+        0 until foldersArray.length()
         ) {
-            val jsonList =
-                listsArray.optJSONObject(index)
+            val jsonFolder =
+                foldersArray.optJSONObject(index)
                     ?: continue
 
             val id =
-                jsonList.optString("id")
+                jsonFolder.optString("id")
 
             if (id.isBlank()) {
                 continue
             }
 
-            lists += EntryList(
+            folders += Folder(
                 id = id,
                 name =
-                    jsonList.optString(
+                    jsonFolder.optString(
                         "name",
-                        "List"
+                        "Folder"
                     ),
                 position =
-                    jsonList.optLong(
+                    jsonFolder.optLong(
                         "position",
                         index.toLong()
                     )
             )
         }
 
+        return normalizeFolders(
+            folders
+        )
+    }
+
+    private fun normalizeFolders(
+        folders: List<Folder>
+    ): List<Folder> {
+        val normalized =
+            folders.filter {
+                it.id.isNotBlank()
+            }
+
         if (
-            lists.none {
-                it.id == ALL_LIST_ID
+            normalized.none {
+                it.id == MASTER_FOLDER_ID
             }
         ) {
-            lists += EntryList(
-                id = ALL_LIST_ID,
-                name = "All",
-                position = 0L
-            )
+            return (
+                    normalized +
+                            Folder(
+                                id = MASTER_FOLDER_ID,
+                                name = "Master",
+                                position =
+                                    (
+                                            normalized.maxOfOrNull {
+                                                it.position
+                                            } ?: -1L
+                                            ) + 1L
+                            )
+                    ).sortedBy {
+                    it.position
+                }
         }
 
-        return lists
-            .sortedBy { it.position }
+        return normalized.sortedBy {
+            it.position
+        }
     }
 }

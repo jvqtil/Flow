@@ -49,17 +49,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.jvqtil.flow.R
-import dev.jvqtil.flow.data.ALL_LIST_ID
 import dev.jvqtil.flow.data.Entry
-import dev.jvqtil.flow.ui.EntryListUiModel
+import dev.jvqtil.flow.data.MASTER_FOLDER_ID
 import dev.jvqtil.flow.ui.EntryUiModel
+import dev.jvqtil.flow.ui.FolderUiModel
 import dev.jvqtil.flow.ui.UndoOperation
 import dev.jvqtil.flow.ui.components.AddButton
 import dev.jvqtil.flow.ui.components.EntryCard
-import dev.jvqtil.flow.ui.components.ListActionsBottomSheet
-import dev.jvqtil.flow.ui.components.ListChoiceBottomSheet
-import dev.jvqtil.flow.ui.components.NewListBottomSheet
-import dev.jvqtil.flow.ui.components.RenameListBottomSheet
+import dev.jvqtil.flow.ui.components.FolderActionsBottomSheet
+import dev.jvqtil.flow.ui.components.FolderChoiceBottomSheet
+import dev.jvqtil.flow.ui.components.NewFolderBottomSheet
+import dev.jvqtil.flow.ui.components.RenameFolderBottomSheet
 import dev.jvqtil.flow.ui.components.UndoPopup
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -70,8 +70,8 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun HomeScreen(
     entries: List<EntryUiModel>,
-    lists: List<EntryListUiModel>,
-    selectedListId: String,
+    folders: List<FolderUiModel>,
+    selectedFolderId: String,
     previewLines: Int,
     shouldScrollToTop: Boolean,
     onScrollToTopHandled: () -> Unit,
@@ -79,10 +79,10 @@ fun HomeScreen(
     undoOperation: UndoOperation?,
     restoringEntryId: String?,
     deletingEntriesIds: Set<String>,
-    onSelectList: (String) -> Unit,
-    onCreateList: suspend (String) -> String?,
-    onRenameList: (String, String) -> Unit,
-    onDeleteList: (String) -> Unit,
+    onSelectFolder: (String) -> Unit,
+    onCreateFolder: suspend (String) -> String?,
+    onRenameFolder: (String, String) -> Unit,
+    onDeleteFolder: (String) -> Unit,
     onUndo: () -> Unit,
     onUndoTimeout: () -> Unit,
     onAnimationFinished: (String) -> Unit,
@@ -93,7 +93,7 @@ fun HomeScreen(
     onReorderEntries: (List<String>) -> Unit,
     onToggleCompleted: (String) -> Unit,
     onToggleTaskNote: (String) -> Unit,
-    onMoveEntryToList: (String, String) -> Unit
+    onMoveEntryToFolder: (String, String) -> Unit
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -110,40 +110,40 @@ fun HomeScreen(
         mutableStateOf<Map<String, Int>>(emptyMap())
     }
 
-    var showNewListSheet by remember {
+    var showNewFolderSheet by remember {
         mutableStateOf(false)
     }
 
-    var newListName by remember {
+    var newFolderName by remember {
         mutableStateOf("")
     }
 
-    var listActionTarget by remember {
-        mutableStateOf<EntryListUiModel?>(null)
+    var folderActionTarget by remember {
+        mutableStateOf<FolderUiModel?>(null)
     }
 
     var renameTarget by remember {
-        mutableStateOf<EntryListUiModel?>(null)
+        mutableStateOf<FolderUiModel?>(null)
     }
 
     var renameText by remember {
         mutableStateOf("")
     }
 
-    var listEntryToSwitch by remember {
+    var entryToMove by remember {
         mutableStateOf<EntryUiModel?>(null)
     }
 
-    var showListPicker by remember {
+    var showFolderPicker by remember {
         mutableStateOf(false)
     }
 
-    var createListForMove by remember {
+    var createFolderForMove by remember {
         mutableStateOf(false)
     }
 
     val containerCornerRadius by animateDpAsState(
-        targetValue = if (lists.lastOrNull()?.id == selectedListId) {
+        targetValue = if (folders.lastOrNull()?.id == selectedFolderId) {
             18.dp
         } else {
             12.dp
@@ -174,61 +174,54 @@ fun HomeScreen(
         closeActionsToken++
     }
 
-    val reorderableState =
-        rememberReorderableLazyListState(
-            lazyListState = listState
-        ) { from, to ->
-            val fromId = from.key as String
-            val toId = to.key as String
+    val reorderableState = rememberReorderableLazyListState(
+        lazyListState = listState
+    ) { from, to ->
+        val fromId = from.key as String
+        val toId = to.key as String
 
-            val fromIndex =
-                localEntries.indexOfFirst {
-                    it.id == fromId
-                }
-
-            val toIndex =
-                localEntries.indexOfFirst {
-                    it.id == toId
-                }
-
-            if (
-                fromIndex >= 0 &&
-                toIndex >= 0 &&
-                fromIndex != toIndex
-            ) {
-                localEntries =
-                    localEntries.toMutableList().apply {
-                        add(
-                            toIndex,
-                            removeAt(fromIndex)
-                        )
-                    }
-            }
+        val fromIndex = localEntries.indexOfFirst {
+            it.id == fromId
         }
 
-    val visibleEntries =
-        buildList {
-            addAll(localEntries)
+        val toIndex = localEntries.indexOfFirst {
+            it.id == toId
+        }
 
-            pendingDeletedEntries.values.forEach { deleted ->
-                if (none { it.id == deleted.id }) {
-                    val position =
-                        deletedEntriesPositions[deleted.id]
-                            ?: size
+        if (
+            fromIndex >= 0 &&
+            toIndex >= 0 &&
+            fromIndex != toIndex
+        ) {
+            localEntries = localEntries.toMutableList().apply {
+                add(
+                    toIndex,
+                    removeAt(fromIndex)
+                )
+            }
+        }
+    }
 
-                    add(
-                        position.coerceIn(0, size),
-                        EntryUiModel(
-                            id = deleted.id,
-                            text = deleted.text,
-                            type = deleted.type,
-                            completed = deleted.completed,
-                            listId = deleted.listId
-                        )
+    val visibleEntries = buildList {
+        addAll(localEntries)
+
+        pendingDeletedEntries.values.forEach { deleted ->
+            if (none { it.id == deleted.id }) {
+                val position = deletedEntriesPositions[deleted.id] ?: size
+
+                add(
+                    position.coerceIn(0, size),
+                    EntryUiModel(
+                        id = deleted.id,
+                        text = deleted.text,
+                        type = deleted.type,
+                        completed = deleted.completed,
+                        folderId = deleted.folderId
                     )
-                }
+                )
             }
         }
+    }
 
     LaunchedEffect(
         localEntries,
@@ -239,16 +232,12 @@ fun HomeScreen(
             return@LaunchedEffect
         }
 
-        if (
-            localEntries.map { it.id } !=
-            entries.map { it.id }
-        ) {
+        if (localEntries.map { it.id } != entries.map { it.id }) {
             delay(350.milliseconds)
 
             if (
                 deletingEntriesIds.isEmpty() &&
-                localEntries.map { it.id } !=
-                entries.map { it.id }
+                localEntries.map { it.id } != entries.map { it.id }
             ) {
                 onReorderEntries(
                     localEntries.map { it.id }
@@ -260,9 +249,7 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                MaterialTheme.colorScheme.background
-            )
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
     ) {
         Text(
@@ -288,12 +275,8 @@ fun HomeScreen(
         ) {
             Icon(
                 imageVector = Icons.Default.Settings,
-                contentDescription =
-                    stringResource(
-                        R.string.settings_label
-                    ),
-                tint =
-                    MaterialTheme.colorScheme.onBackground
+                contentDescription = stringResource(R.string.settings_label),
+                tint = MaterialTheme.colorScheme.onBackground
             )
         }
 
@@ -324,12 +307,10 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(
-                        items = lists,
+                        items = folders,
                         key = { it.id }
-                    ) { list ->
-
-                        val selected =
-                            list.id == selectedListId
+                    ) { folder ->
+                        val selected = folder.id == selectedFolderId
 
                         Box(
                             modifier = Modifier
@@ -345,14 +326,12 @@ fun HomeScreen(
                                     onClick = {
                                         if (!selected) {
                                             closeActions()
-                                            onSelectList(list.id)
+                                            onSelectFolder(folder.id)
                                         }
                                     },
                                     onLongClick = {
-                                        if (list.id != ALL_LIST_ID) {
-                                            closeActions()
-                                            listActionTarget = list
-                                        }
+                                        closeActions()
+                                        folderActionTarget = folder
                                     }
                                 )
                                 .padding(
@@ -361,24 +340,29 @@ fun HomeScreen(
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            val listName =
-                                if (list.id == ALL_LIST_ID) {
-                                    stringResource(R.string.all_list_label)
-                                } else {
-                                    list.name
-                                }
-
-                            Text(
-                                text = listName,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = if (selected) {
-                                    MaterialTheme.colorScheme.onPrimary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
-                                style = MaterialTheme.typography.labelLarge
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text =
+                                        if (folder.id == MASTER_FOLDER_ID &&
+                                            folder.name.isBlank()
+                                        ) {
+                                            stringResource(R.string.master_folder_label)
+                                        } else {
+                                            folder.name
+                                        },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = if (selected) {
+                                        MaterialTheme.colorScheme.onPrimary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
                         }
                     }
                 }
@@ -396,16 +380,15 @@ fun HomeScreen(
                 IconButton(
                     onClick = {
                         closeActions()
-                        newListName = ""
-                        showNewListSheet = true
+                        newFolderName = ""
+                        createFolderForMove = false
+                        showNewFolderSheet = true
                     },
                     modifier = Modifier.size(38.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(
-                            R.string.new_list_label
-                        ),
+                        contentDescription = stringResource(R.string.new_folder_label),
                         modifier = Modifier.size(22.dp),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
@@ -422,16 +405,11 @@ fun HomeScreen(
                     end = 16.dp
                 )
         ) {
-            val listEntries =
-                if (selectedListId == ALL_LIST_ID) {
-                    visibleEntries
-                } else {
-                    visibleEntries.filter {
-                        it.listId == selectedListId
-                    }
-                }
+            val folderEntries = visibleEntries.filter {
+                it.folderId == selectedFolderId
+            }
 
-            if (listEntries.isNotEmpty()) {
+            if (folderEntries.isNotEmpty()) {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -441,14 +419,13 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(
-                        items = listEntries,
+                        items = folderEntries,
                         key = { it.id }
                     ) { entry ->
                         ReorderableItem(
                             state = reorderableState,
                             key = entry.id
                         ) { isDragging ->
-
                             EntryCard(
                                 entry = entry,
                                 previewLines = previewLines,
@@ -461,7 +438,6 @@ fun HomeScreen(
                                 closeActionsToken = closeActionsToken,
                                 dragHandleModifier =
                                     Modifier.longPressDraggableHandle(),
-
                                 onClick = {
                                     if (
                                         entry.id !in deletingEntriesIds &&
@@ -471,16 +447,14 @@ fun HomeScreen(
                                         onOpenEntry(entry.id)
                                     }
                                 },
-
                                 onDelete = {
                                     if (
                                         entry.id !in deletingEntriesIds &&
                                         entry.id != restoringEntryId
                                     ) {
-                                        val index =
-                                            localEntries.indexOfFirst {
-                                                it.id == entry.id
-                                            }
+                                        val index = localEntries.indexOfFirst {
+                                            it.id == entry.id
+                                        }
 
                                         deletedEntriesPositions =
                                             deletedEntriesPositions +
@@ -490,7 +464,6 @@ fun HomeScreen(
                                         onDeleteEntry(entry.id)
                                     }
                                 },
-
                                 onToggleCompleted = {
                                     if (
                                         entry.id !in deletingEntriesIds &&
@@ -499,7 +472,6 @@ fun HomeScreen(
                                         onToggleCompleted(entry.id)
                                     }
                                 },
-
                                 onToggleTaskNote = {
                                     if (
                                         entry.id !in deletingEntriesIds &&
@@ -508,12 +480,11 @@ fun HomeScreen(
                                         onToggleTaskNote(entry.id)
                                     }
                                 },
-
-                                onSwitchList = {
-                                    listEntryToSwitch = entry
-                                    showListPicker = true
+                                onSwitchFolder = {
+                                    closeActions()
+                                    entryToMove = entry
+                                    showFolderPicker = true
                                 },
-
                                 onAnimationFinished = {
                                     deletedEntriesPositions =
                                         deletedEntriesPositions - entry.id
@@ -575,14 +546,13 @@ fun HomeScreen(
                 )
         ) {
             undoOperation?.let { operation ->
-                val undoId =
-                    when (operation) {
-                        is UndoOperation.EntryDeleted ->
-                            operation.entry.id
+                val undoId = when (operation) {
+                    is UndoOperation.EntryDeleted ->
+                        operation.entry.id
 
-                        is UndoOperation.ListDeleted ->
-                            operation.snapshot.list.id
-                    }
+                    is UndoOperation.FolderDeleted ->
+                        operation.snapshot.folder.id
+                }
 
                 UndoPopup(
                     id = undoId,
@@ -596,43 +566,49 @@ fun HomeScreen(
         }
     }
 
-    listActionTarget?.let { list ->
+    folderActionTarget?.let { folder ->
+        val displayName = if (folder.id == MASTER_FOLDER_ID && folder.name.isBlank()) {
+            stringResource(R.string.master_folder_label)
+        } else {
+            folder.name
+        }
 
-        val listName =
-            if (list.id == ALL_LIST_ID) {
-                stringResource(R.string.all_list_label)
-            } else {
-                list.name
-            }
-
-        ListActionsBottomSheet(
-            list = list,
+        FolderActionsBottomSheet(
+            folder = folder,
             onRename = {
-                renameTarget = list
-                renameText = listName
-                listActionTarget = null
+                renameTarget = folder
+                renameText = displayName
+                folderActionTarget = null
             },
             onDelete = {
-                listActionTarget = null
-                onDeleteList(list.id)
+                folderActionTarget = null
+                onDeleteFolder(folder.id)
             },
             onDismiss = {
-                listActionTarget = null
+                folderActionTarget = null
             }
         )
     }
 
-    renameTarget?.let { list ->
-
-        RenameListBottomSheet(
+    renameTarget?.let { folder ->
+        RenameFolderBottomSheet(
             value = renameText,
             onValueChange = {
                 renameText = it
             },
             onSave = {
-                onRenameList(
-                    list.id,
+                onRenameFolder(
+                    folder.id,
                     renameText.trim()
+                )
+
+                renameTarget = null
+                renameText = ""
+            },
+            onReset = {
+                onRenameFolder(
+                    folder.id,
+                    ""
                 )
 
                 renameTarget = null
@@ -645,85 +621,88 @@ fun HomeScreen(
         )
     }
 
-    if (showNewListSheet) {
-        NewListBottomSheet(
-            value = newListName,
+    if (showNewFolderSheet) {
+        NewFolderBottomSheet(
+            value = newFolderName,
             onValueChange = {
-                newListName = it
+                newFolderName = it
             },
             onCreate = {
-                val name = newListName.trim()
+                val name = newFolderName.trim()
 
                 if (name.isNotBlank()) {
                     scope.launch {
-                        val listId =
-                            onCreateList(name)
+                        val folderId = onCreateFolder(name)
 
-                        if (listId != null) {
-                            if (createListForMove) {
-                                listEntryToSwitch?.let { entry ->
-                                    onMoveEntryToList(
+                        if (folderId != null) {
+                            if (createFolderForMove) {
+                                entryToMove?.let { entry ->
+                                    onMoveEntryToFolder(
                                         entry.id,
-                                        listId
+                                        folderId
                                     )
                                 }
                             } else {
-                                onSelectList(listId)
+                                onSelectFolder(folderId)
                             }
                         }
 
-                        listEntryToSwitch = null
-                        createListForMove = false
-                        newListName = ""
-                        showNewListSheet = false
+                        entryToMove = null
+                        createFolderForMove = false
+                        newFolderName = ""
+                        showNewFolderSheet = false
                     }
                 }
             },
             onDismiss = {
-                newListName = ""
-                showNewListSheet = false
-                listEntryToSwitch = null
-                createListForMove = false
+                newFolderName = ""
+                showNewFolderSheet = false
+                entryToMove = null
+                createFolderForMove = false
             }
         )
     }
 
     if (
-        showListPicker &&
-        listEntryToSwitch != null
+        showFolderPicker &&
+        entryToMove != null
     ) {
-        ListChoiceBottomSheet(
-            lists = lists.filter {
-                it.id != ALL_LIST_ID
-            },
-            selectedListId =
-                listEntryToSwitch!!.listId,
+        FolderChoiceBottomSheet(
+            folders = folders,
+            selectedFolderId = entryToMove!!.folderId,
+            onSelect = { folderId ->
+                entryToMove?.let { entry ->
 
-            onSelect = { listId ->
-                scope.launch {
-                    listEntryToSwitch?.let { entry ->
-                        onMoveEntryToList(
-                            entry.id,
-                            listId
-                        )
-                    }
+                    localEntries =
+                        localEntries.map { current ->
+                            if (current.id == entry.id) {
+                                current.copy(
+                                    folderId = folderId
+                                )
+                            } else {
+                                current
+                            }
+                        }
 
-                    showListPicker = false
-                    listEntryToSwitch = null
+                    onMoveEntryToFolder(
+                        entry.id,
+                        folderId
+                    )
                 }
-            },
 
-            onCreateList = {
-                showListPicker = false
-                createListForMove = true
-                newListName = ""
-                showNewListSheet = true
+                showFolderPicker = false
+                entryToMove = null
             },
-
+            onCreateFolder = {
+                showFolderPicker = false
+                createFolderForMove = true
+                newFolderName = ""
+                showNewFolderSheet = true
+            },
             onDismiss = {
-                showListPicker = false
-                listEntryToSwitch = null
-                createListForMove = false
+                showFolderPicker = false
+                entryToMove = null
+                createFolderForMove = false
             }
         )
     }

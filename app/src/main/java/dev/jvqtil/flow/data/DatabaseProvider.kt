@@ -91,7 +91,7 @@ private val MIGRATION_4_5 = object : Migration(4, 5) {
     ) {
         connection.execSQL(
             """
-            CREATE TABLE lists (
+            CREATE TABLE folders (
                 id TEXT NOT NULL,
                 name TEXT NOT NULL,
                 position INTEGER NOT NULL,
@@ -102,14 +102,14 @@ private val MIGRATION_4_5 = object : Migration(4, 5) {
 
         connection.execSQL(
             """
-            INSERT INTO lists (
+            INSERT INTO folders (
                 id,
                 name,
                 position
             )
             VALUES (
-                '$ALL_LIST_ID',
-                'All',
+                '$MASTER_FOLDER_ID',
+                'Master',
                 0
             )
             """.trimIndent()
@@ -118,14 +118,14 @@ private val MIGRATION_4_5 = object : Migration(4, 5) {
         connection.execSQL(
             """
             ALTER TABLE notes
-            ADD COLUMN listId TEXT NOT NULL DEFAULT '$ALL_LIST_ID'
+            ADD COLUMN folderId TEXT NOT NULL DEFAULT '$MASTER_FOLDER_ID'
             """.trimIndent()
         )
 
         connection.execSQL(
             """
             UPDATE notes
-            SET listId = '$ALL_LIST_ID'
+            SET folderId = '$MASTER_FOLDER_ID'
             """.trimIndent()
         )
     }

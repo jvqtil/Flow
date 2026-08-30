@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
             FlowRepository(
                 database = database,
                 entryDao = database.entryDao(),
-                entryListDao = database.entryListDao(),
+                folderDao = database.folderDao(),
                 attachmentDao = database.attachmentDao(),
                 attachmentStorage = attachmentStorage
             )

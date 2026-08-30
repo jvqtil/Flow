@@ -4,10 +4,10 @@ import androidx.room3.Entity
 import androidx.room3.PrimaryKey
 import java.util.UUID
 
-const val ALL_LIST_ID = "all"
+const val MASTER_FOLDER_ID = "master"
 
-@Entity(tableName = "lists")
-data class EntryList(
+@Entity(tableName = "folders")
+data class Folder(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
     val name: String,

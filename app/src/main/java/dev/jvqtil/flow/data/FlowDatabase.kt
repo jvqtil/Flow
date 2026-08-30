@@ -6,7 +6,7 @@ import androidx.room3.RoomDatabase
 @Database(
     entities = [
         Entry::class,
-        EntryList::class,
+        Folder::class,
         Attachment::class
     ],
     version = 5,
@@ -16,7 +16,7 @@ abstract class FlowDatabase : RoomDatabase() {
 
     abstract fun entryDao(): EntryDao
 
-    abstract fun entryListDao(): EntryListDao
+    abstract fun folderDao(): FolderDao
 
     abstract fun attachmentDao(): AttachmentDao
 }

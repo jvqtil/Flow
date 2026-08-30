@@ -4,76 +4,108 @@ import android.net.Uri
 import androidx.room3.withWriteTransaction
 import kotlinx.coroutines.flow.Flow
 
-data class DeletedListSnapshot(
-    val list: EntryList,
-    val entries: List<Entry>
+data class DeletedFolderSnapshot(
+    val folder: Folder,
+    val entries: List<Entry>,
+    val attachments: List<Attachment>
 )
 
 class FlowRepository(
     private val database: FlowDatabase,
     private val entryDao: EntryDao,
-    private val entryListDao: EntryListDao,
+    private val folderDao: FolderDao,
     private val attachmentDao: AttachmentDao,
     private val attachmentStorage: AttachmentStorage
 ) {
 
-    fun observeLists(): Flow<List<EntryList>> {
-        return entryListDao.observeLists()
+    fun observeFolders(): Flow<List<Folder>> {
+        return folderDao.observeFolders()
     }
 
-    suspend fun getAllLists(): List<EntryList> {
-        return entryListDao.getAllLists()
+    suspend fun getAllFolders(): List<Folder> {
+        return folderDao.getAllFolders()
     }
 
-    suspend fun findListById(
+    suspend fun findFolderById(
         id: String
-    ): EntryList? {
-        return entryListDao.getById(id)
+    ): Folder? {
+        return folderDao.getById(id)
     }
 
-    suspend fun insertList(
-        list: EntryList
+    suspend fun insertFolder(
+        folder: Folder
     ) {
-        entryListDao.insert(list)
+        folderDao.insert(folder)
     }
 
-    suspend fun updateList(
-        list: EntryList
+    suspend fun updateFolder(
+        folder: Folder
     ) {
-        entryListDao.update(list)
+        folderDao.update(folder)
     }
 
-    suspend fun deleteList(
-        list: EntryList
+    suspend fun deleteFolder(
+        folder: Folder
     ) {
-        entryListDao.delete(list)
+        folderDao.delete(folder)
     }
 
-    suspend fun deleteListWithEntries(
-        list: EntryList
-    ) {
+    suspend fun deleteFolderWithEntries(
+        folder: Folder
+    ): DeletedFolderSnapshot {
+        val entries =
+            entryDao.getNotes(
+                folderId = folder.id
+            )
+
+        val attachments =
+            entries.flatMap { entry ->
+                attachmentDao.getForEntry(
+                    entry.id
+                )
+            }
+
         database.withWriteTransaction {
-            entryDao.deleteByListId(list.id)
-            entryListDao.delete(list)
+            attachmentDao.deleteForFolder(
+                folder.id
+            )
+
+            entryDao.deleteByFolderId(
+                folder.id
+            )
+
+            folderDao.delete(
+                folder
+            )
         }
+
+        return DeletedFolderSnapshot(
+            folder = folder,
+            entries = entries,
+            attachments = attachments
+        )
     }
 
-    suspend fun restoreList(
-        list: EntryList
+    suspend fun restoreFolder(
+        folder: Folder
     ) {
-        entryListDao.upsert(list)
+        folderDao.upsert(folder)
     }
 
-    suspend fun restoreListWithEntries(
-        snapshot: DeletedListSnapshot
+    suspend fun restoreFolderWithEntries(
+        snapshot: DeletedFolderSnapshot
     ) {
         database.withWriteTransaction {
-            entryListDao.insert(
-                snapshot.list
+            folderDao.insert(
+                snapshot.folder
             )
 
             entryDao.insertAll(
                 snapshot.entries
+            )
+
+            attachmentDao.insertAll(
+                snapshot.attachments
             )
         }
     }
@@ -83,9 +115,9 @@ class FlowRepository(
     }
 
     fun observeEntries(
-        listId: String
+        folderId: String
     ): Flow<List<Entry>> {
-        return entryDao.observeNotes(listId)
+        return entryDao.observeNotes(folderId)
     }
 
     suspend fun getAllEntries(): List<Entry> {
@@ -93,9 +125,9 @@ class FlowRepository(
     }
 
     suspend fun getEntries(
-        listId: String
+        folderId: String
     ): List<Entry> {
-        return entryDao.getNotes(listId)
+        return entryDao.getNotes(folderId)
     }
 
     suspend fun findById(
@@ -108,7 +140,7 @@ class FlowRepository(
         entry: Entry
     ) {
         entryDao.shiftPositionsDown(
-            listId = entry.listId
+            folderId = entry.folderId
         )
 
         entryDao.insert(
@@ -120,15 +152,15 @@ class FlowRepository(
 
     suspend fun insertAtTop(
         entry: Entry,
-        listId: String
+        folderId: String
     ) {
         entryDao.shiftPositionsDown(
-            listId = listId
+            folderId = folderId
         )
 
         entryDao.insert(
             entry.copy(
-                listId = listId,
+                folderId = folderId,
                 position = 0L
             )
         )
@@ -161,30 +193,30 @@ class FlowRepository(
     }
 
     suspend fun updateEntriesPositions(
-        listId: String,
+        folderId: String,
         entryIds: List<String>
     ) {
         entryIds.forEachIndexed { index, id ->
-            entryDao.updatePositionInList(
+            entryDao.updatePositionInFolder(
                 id = id,
-                listId = listId,
+                folderId = folderId,
                 position = index.toLong()
             )
         }
     }
 
-    suspend fun moveEntryToList(
+    suspend fun moveEntryToFolder(
         entry: Entry,
-        targetListId: String
+        targetFolderId: String
     ) {
         val nextPosition =
             entryDao.getNextPosition(
-                listId = targetListId
+                folderId = targetFolderId
             )
 
-        entryDao.moveToList(
+        entryDao.moveToFolder(
             entryId = entry.id,
-            listId = targetListId,
+            folderId = targetFolderId,
             position = nextPosition
         )
     }
@@ -192,7 +224,9 @@ class FlowRepository(
     fun observeAttachments(
         entryId: String
     ): Flow<List<Attachment>> {
-        return attachmentDao.observeForEntry(entryId)
+        return attachmentDao.observeForEntry(
+            entryId
+        )
     }
 
     suspend fun insertAttachment(
@@ -200,7 +234,9 @@ class FlowRepository(
         uri: Uri
     ): Attachment {
         val metadata =
-            attachmentStorage.getMetadata(uri)
+            attachmentStorage.getMetadata(
+                uri
+            )
 
         val path =
             attachmentStorage.copyIntoStorage(
@@ -218,9 +254,14 @@ class FlowRepository(
             )
 
         try {
-            attachmentDao.insert(attachment)
+            attachmentDao.insert(
+                attachment
+            )
         } catch (error: Throwable) {
-            attachmentStorage.delete(path)
+            attachmentStorage.delete(
+                path
+            )
+
             throw error
         }
 
@@ -230,29 +271,50 @@ class FlowRepository(
     suspend fun deleteAttachment(
         attachment: Attachment
     ) {
-        attachmentStorage.delete(attachment.path)
-        attachmentDao.delete(attachment)
+        attachmentStorage.delete(
+            attachment.path
+        )
+
+        attachmentDao.delete(
+            attachment
+        )
     }
 
     suspend fun purgeAttachments(
         entryId: String
     ) {
         val attachments =
-            attachmentDao.getForEntry(entryId)
+            attachmentDao.getForEntry(
+                entryId
+            )
 
         attachments.forEach { attachment ->
-            attachmentStorage.delete(attachment.path)
+            attachmentStorage.delete(
+                attachment.path
+            )
         }
 
-        attachmentDao.deleteForEntry(entryId)
+        attachmentDao.deleteForEntry(
+            entryId
+        )
     }
 
-    suspend fun purgeListAttachments(
+    suspend fun purgeFolderAttachments(
         entries: List<Entry>
     ) {
         entries.forEach { entry ->
             purgeAttachments(
                 entry.id
+            )
+        }
+    }
+
+    suspend fun permanentlyDeleteFolderSnapshot(
+        snapshot: DeletedFolderSnapshot
+    ) {
+        snapshot.attachments.forEach { attachment ->
+            attachmentStorage.delete(
+                attachment.path
             )
         }
     }

@@ -1,49 +1,64 @@
 <resources>
 
     <string name="add_note_label">Добавить заметку</string>
-    <string name="all_list_label">Все</string>
     <string name="appearance_label">Внешний вид</string>
     <string name="attach_file_label">Прикрепить файл</string>
     <string name="back_label">Назад</string>
     <string name="backup_restore_label">Резервное копирование</string>
+
     <string name="completed_label">Выполнено</string>
     <string name="convert_to_note_label">Преобразовать в заметку</string>
     <string name="convert_to_task_label">Преобразовать в задачу</string>
     <string name="create_label">Создать</string>
+
     <string name="dark_mode_only_label">Только для тёмной темы</string>
     <string name="default_font">По умолчанию</string>
     <string name="delete_label">Удалить</string>
+
     <string name="editor_label">Редактор</string>
     <string name="export_failed_label">Не удалось экспортировать</string>
     <string name="export_label">Экспорт</string>
+
     <string name="fonts_label">Шрифты</string>
-    <string name="import_failed_label">Не удалось экспортировать</string>
+
+    <string name="import_failed_label">Не удалось импортировать</string>
     <string name="import_label">Импорт</string>
+
     <string name="keyboard_label">Режим клавиатуры</string>
-    <string name="new_list_label">Новый список</string>
+
+    <string name="new_folder_label">Новая папка</string>
     <string name="no_notes_yet_label">Заметок пока нет</string>
     <string name="normal_label">Стандартная</string>
     <string name="note_label">Заметка</string>
     <string name="notes_exported_label">Заметки экспортированы</string>
     <string name="notes_imported_label">Заметки импортированы</string>
+
     <string name="placeholder_name">Имя</string>
     <string name="preview_label">Предпросмотр</string>
+
     <plurals name="preview_lines">
         <item quantity="one">%1$d строка</item>
         <item quantity="few">%1$d строки</item>
         <item quantity="many">%1$d строк</item>
         <item quantity="other">%1$d строки</item>
     </plurals>
+
     <string name="pure_black_description">Для AMOLED-дисплеев</string>
+
     <string name="rename_label">Переименовать</string>
-    <string name="rename_list_label">Переименовать список</string>
+    <string name="rename_folder_label">Переименовать папку</string>
+
     <string name="settings_label">Настройки</string>
     <string name="source_code_label">Исходный код</string>
-    <string name="switch_list_label">Сменить список</string>
+    <string name="switch_folder_label">Переместить в папку</string>
+
     <string name="task_label">Задача</string>
+
     <string name="ui_font_font">Шрифт UI</string>
     <string name="ui_label">Интерфейс</string>
     <string name="undo_label">Отменить</string>
+    <string name="master_folder_label">Основное</string>
+    <string name="reset_folder_name_label">Сбросить имя папки</string>
 
     <string-array name="editor_placeholders">
         <item>Есть идеи?</item>
