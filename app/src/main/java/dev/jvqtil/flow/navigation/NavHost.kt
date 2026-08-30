@@ -47,7 +47,9 @@ import dev.jvqtil.flow.ui.models.UiFont
 import dev.jvqtil.flow.ui.screens.EditorScreen
 import dev.jvqtil.flow.ui.screens.HomeScreen
 import dev.jvqtil.flow.ui.screens.SettingsScreen
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun FlowNavHost(
@@ -529,6 +531,46 @@ fun FlowNavHost(
             rememberUpdatedState(
                 entryPersisted
             )
+
+            LaunchedEffect(
+                currentEntry?.id,
+                currentEntry?.text,
+                currentEntry?.folderId,
+                currentEntry?.type,
+                currentEntry?.completed
+            ) {
+                val entryToSave =
+                    currentEntry
+                        ?: return@LaunchedEffect
+
+                delay(700.milliseconds)
+
+                if (
+                    isNew &&
+                    !entryPersisted
+                ) {
+                    if (
+                        entryToSave.text.isBlank() &&
+                        attachments.isEmpty()
+                    ) {
+                        return@LaunchedEffect
+                    }
+
+                    flowFireModel.saveNewEntry(
+                        entryToSave
+                    )
+
+                    entryPersisted = true
+                    shouldScrollHomeToTop = true
+
+                    return@LaunchedEffect
+                }
+
+                flowFireModel.updateEntry(
+                    entry = entryToSave,
+                    hasAttachments = attachments.isNotEmpty()
+                )
+            }
 
             DisposableEffect(Unit) {
                 onDispose {
