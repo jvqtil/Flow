@@ -78,6 +78,8 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun HomeScreen(
+    foldersEnabled: Boolean,
+    swipeGesturesEnabled: Boolean,
     updateAvailable: UpdateModel?,
     onUpdateClick: () -> Unit,
     entries: List<EntryUiModel>,
@@ -348,142 +350,144 @@ fun HomeScreen(
             }
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    top = if (updateAvailable != null) {
-                        118.dp
-                    } else {
-                        64.dp
-                    },
-                    start = 16.dp,
-                    end = 16.dp
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Box(
+        if (foldersEnabled) {
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(38.dp)
+                    .fillMaxWidth()
+                    .padding(
+                        top = if (updateAvailable != null) {
+                            118.dp
+                        } else {
+                            64.dp
+                        },
+                        start = 16.dp,
+                        end = 16.dp
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(38.dp)
                 ) {
-                    items(
-                        items = folders,
-                        key = { it.id }
-                    ) { folder ->
-                        val selected = folder.id == selectedFolderId
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(
+                            items = folders,
+                            key = { it.id }
+                        ) { folder ->
+                            val selected = folder.id == selectedFolderId
 
-                        val cornerRadius by animateDpAsState(
-                            targetValue = if (selected) {
-                                18.dp
-                            } else {
-                                12.dp
-                            },
-                            animationSpec = tween(200),
-                            label = "folderCornerRadius"
-                        )
+                            val cornerRadius by animateDpAsState(
+                                targetValue = if (selected) {
+                                    18.dp
+                                } else {
+                                    12.dp
+                                },
+                                animationSpec = tween(200),
+                                label = "folderCornerRadius"
+                            )
 
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    color = if (selected) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.surfaceContainer
-                                    },
-                                    shape = RoundedCornerShape(cornerRadius)
-                                )
-                                .combinedClickable(
-                                    onClick = {
-                                        if (!selected) {
-                                            val currentIndex = folders.indexOfFirst {
-                                                it.id == selectedFolderId
-                                            }
-
-                                            val newIndex = folders.indexOfFirst {
-                                                it.id == folder.id
-                                            }
-
-                                            folderSwitchDirection =
-                                                if (newIndex > currentIndex) {
-                                                    1
-                                                } else {
-                                                    -1
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        color = if (selected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceContainer
+                                        },
+                                        shape = RoundedCornerShape(cornerRadius)
+                                    )
+                                    .combinedClickable(
+                                        onClick = {
+                                            if (!selected) {
+                                                val currentIndex = folders.indexOfFirst {
+                                                    it.id == selectedFolderId
                                                 }
 
-                                            closeActions()
-                                            onSelectFolder(folder.id)
-                                        }
-                                    },
-                                    onLongClick = {
-                                        closeActions()
-                                        folderActionTarget = folder
-                                    }
-                                )
-                                .padding(
-                                    horizontal = 16.dp,
-                                    vertical = 9.dp
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text =
-                                        if (folder.id == MASTER_FOLDER_ID &&
-                                            folder.name.isBlank()
-                                        ) {
-                                            stringResource(R.string.master_folder_label)
-                                        } else {
-                                            folder.name
+                                                val newIndex = folders.indexOfFirst {
+                                                    it.id == folder.id
+                                                }
+
+                                                folderSwitchDirection =
+                                                    if (newIndex > currentIndex) {
+                                                        1
+                                                    } else {
+                                                        -1
+                                                    }
+
+                                                closeActions()
+                                                onSelectFolder(folder.id)
+                                            }
                                         },
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    color = if (selected) {
-                                        MaterialTheme.colorScheme.onPrimary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface
-                                    },
-                                    style = MaterialTheme.typography.labelLarge
-                                )
+                                        onLongClick = {
+                                            closeActions()
+                                            folderActionTarget = folder
+                                        }
+                                    )
+                                    .padding(
+                                        horizontal = 16.dp,
+                                        vertical = 9.dp
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text =
+                                            if (folder.id == MASTER_FOLDER_ID &&
+                                                folder.name.isBlank()
+                                            ) {
+                                                stringResource(R.string.master_folder_label)
+                                            } else {
+                                                folder.name
+                                            },
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = if (selected) {
+                                            MaterialTheme.colorScheme.onPrimary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        shape = RoundedCornerShape(14.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                IconButton(
-                    onClick = {
-                        closeActions()
-                        newFolderName = ""
-                        createFolderForMove = false
-                        showNewFolderSheet = true
-                    },
-                    modifier = Modifier.size(38.dp)
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            shape = RoundedCornerShape(14.dp)
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription =
-                            stringResource(R.string.new_folder_label),
-                        modifier = Modifier.size(22.dp),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                    IconButton(
+                        onClick = {
+                            closeActions()
+                            newFolderName = ""
+                            createFolderForMove = false
+                            showNewFolderSheet = true
+                        },
+                        modifier = Modifier.size(38.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription =
+                                stringResource(R.string.new_folder_label),
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
         }
@@ -492,10 +496,11 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    top = if (updateAvailable != null) {
-                        170.dp
-                    } else {
-                        116.dp
+                    top = when {
+                        updateAvailable != null && foldersEnabled -> 170.dp
+                        updateAvailable != null -> 116.dp
+                        foldersEnabled -> 116.dp
+                        else -> 64.dp
                     },
                     start = 16.dp,
                     end = 16.dp
@@ -546,6 +551,8 @@ fun HomeScreen(
                             key = entry.id
                         ) { isDragging ->
                             EntryCard(
+                                foldersEnabled = foldersEnabled,
+                                swipeGesturesEnabled = swipeGesturesEnabled,
                                 entry = entry,
                                 previewLines = previewLines,
                                 shouldAnimate =
@@ -603,14 +610,13 @@ fun HomeScreen(
                                     closeActions()
                                     entryToMove = entry
                                     showFolderPicker = true
-                                },
-                                onAnimationFinished = {
-                                    deletedEntriesPositions =
-                                        deletedEntriesPositions - entry.id
-
-                                    onAnimationFinished(entry.id)
                                 }
-                            )
+                            ) {
+                                deletedEntriesPositions =
+                                    deletedEntriesPositions - entry.id
+
+                                onAnimationFinished(entry.id)
+                            }
                         }
                     }
                 }

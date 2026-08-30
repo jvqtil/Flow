@@ -48,6 +48,7 @@ import dev.jvqtil.flow.BuildConfig
 import dev.jvqtil.flow.R
 import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
+import dev.jvqtil.flow.data.Feature
 import dev.jvqtil.flow.ui.models.EditorFont
 import dev.jvqtil.flow.ui.models.KeyboardMode
 import dev.jvqtil.flow.ui.models.UiFont
@@ -57,10 +58,10 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    enabledFeatures: Set<Feature>,
+    onFeatureChanged: (Feature, Boolean) -> Unit,
     defaultEntryType: String,
     onDefaultEntryTypeChanged: (String) -> Unit,
-    amoled: Boolean,
-    onAmoledChanged: (Boolean) -> Unit,
     uiFont: UiFont,
     onUiFontChanged: (UiFont) -> Unit,
     editorFont: EditorFont,
@@ -174,6 +175,57 @@ fun SettingsScreen(
             )
 
             Text(
+                text = stringResource(R.string.features_label),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(
+                modifier = Modifier.height(12.dp)
+            )
+
+            FeatureSwitch(
+                title = stringResource(R.string.folders_label),
+                description = stringResource(R.string.folders_description),
+                checked = Feature.FOLDERS in enabledFeatures,
+                onCheckedChange = { enabled ->
+                    onFeatureChanged(
+                        Feature.FOLDERS,
+                        enabled
+                    )
+                }
+            )
+
+            Spacer(
+                modifier = Modifier.height(8.dp)
+            )
+
+            FeatureSwitch(
+                title = stringResource(R.string.swipe_gestures_label),
+                description = stringResource(R.string.swipe_gestures_description),
+                checked = Feature.SWIPE_GESTURES in enabledFeatures,
+                onCheckedChange = { enabled ->
+                    onFeatureChanged(
+                        Feature.SWIPE_GESTURES,
+                        enabled
+                    )
+                }
+            )
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.surfaceContainerHighest
+            )
+
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
+
+            Text(
                 text = stringResource(R.string.appearance_label),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
@@ -191,6 +243,9 @@ fun SettingsScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                val pureBlackEnabled =
+                    Feature.PURE_BLACK in enabledFeatures
+
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -222,9 +277,14 @@ fun SettingsScreen(
                 }
 
                 Switch(
-                    checked = amoled,
+                    checked = pureBlackEnabled,
                     enabled = isDark,
-                    onCheckedChange = onAmoledChanged
+                    onCheckedChange = { enabled ->
+                        onFeatureChanged(
+                            Feature.PURE_BLACK,
+                            enabled
+                        )
+                    }
                 )
             }
 
@@ -656,5 +716,50 @@ private fun SettingOptionButton(
                 }
             )
         }
+    }
+}
+
+@Composable
+private fun FeatureSwitch(
+    title: String,
+    description: String?,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 16.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(
+                modifier = Modifier.height(2.dp)
+            )
+
+            if (description != null) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
     }
 }

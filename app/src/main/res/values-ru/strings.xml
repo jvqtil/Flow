@@ -1,6 +1,6 @@
 <resources>
 
-    <string name="add_note_label">Добавить заметку</string>
+    <string name="add_note_label">Добавить запись</string>
     <string name="appearance_label">Внешний вид</string>
     <string name="attach_file_label">Прикрепить файл</string>
     <string name="back_label">Назад</string>
@@ -27,7 +27,7 @@
     <string name="keyboard_label">Режим клавиатуры</string>
 
     <string name="new_folder_label">Новая папка</string>
-    <string name="no_notes_yet_label">Заметок пока нет</string>
+    <string name="no_entries_yet_label">Записей пока нет</string>
     <string name="normal_label">Стандартная</string>
     <string name="note_label">Заметка</string>
     <string name="notes_exported_label">Заметки экспортированы</string>
@@ -59,7 +59,12 @@
     <string name="undo_label">Отменить</string>
     <string name="master_folder_label">Основное</string>
     <string name="reset_folder_name_label">Сбросить имя папки</string>
-    <string name="default_entry_type_label">Тип заметки по умолчанию</string>
+    <string name="default_entry_type_label">Тип записи по умолчанию</string>
+    <string name="features_label">Функции</string>
+    <string name="folders_label">Папки</string>
+    <string name="folders_description">Организация заметок по папкам</string>
+    <string name="swipe_gestures_label">Свайпы</string>
+    <string name="swipe_gestures_description">Смахивайте записи, чтобы открыть быстрые действия</string>
 
     <string-array name="editor_placeholders">
         <item>Есть идеи?</item>

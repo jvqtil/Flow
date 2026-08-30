@@ -2,7 +2,7 @@
 
     <string name="app_name" translatable="false">Flow</string>
 
-    <string name="add_note_label">Add note</string>
+    <string name="add_note_label">Add entry</string>
     <string name="appearance_label">Appearance</string>
     <string name="attach_file_label">Attach file</string>
     <string name="back_label">Back</string>
@@ -34,7 +34,7 @@
     <string name="monospace_font" translatable="false">Monospace</string>
 
     <string name="new_folder_label">New folder</string>
-    <string name="no_notes_yet_label">No notes yet</string>
+    <string name="no_entries_yet_label">No entries yet</string>
     <string name="normal_label">Normal</string>
     <string name="note_label">Note</string>
     <string name="notes_exported_label">Notes exported</string>
@@ -67,6 +67,11 @@
     <string name="master_folder_label">Master</string>
     <string name="reset_folder_name_label">Reset folder name</string>
     <string name="default_entry_type_label">Default entry type</string>
+    <string name="features_label">Features</string>
+    <string name="folders_label">Folders</string>
+    <string name="folders_description">Organize entries into folders</string>
+    <string name="swipe_gestures_label">Swipe gestures</string>
+    <string name="swipe_gestures_description">Swipe entries to reveal quick actions</string>
 
     <string-array name="editor_placeholders">
         <item>Any ideas?</item>

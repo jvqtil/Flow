@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import dev.jvqtil.flow.data.AppPreferences
+import dev.jvqtil.flow.data.Feature
 import dev.jvqtil.flow.ui.models.UiFont
 import dev.jvqtil.flow.ui.models.fontFamily
 
@@ -31,9 +32,9 @@ private val FallbackDarkColors = darkColorScheme(
 )
 
 private val FallbackAmoledColors = darkColorScheme(
-    background = FlowAmoledBackground,
+    background = FlowPureBlackBackground,
     onBackground = Color(0xFFE6E1E9),
-    surface = FlowAmoledSurface,
+    surface = FlowPureBlackSurface,
     onSurface = Color(0xFFE6E1E9)
 )
 
@@ -55,25 +56,34 @@ fun FlowTheme(
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
 
-    val amoled by AppPreferences
-        .observeAmoled(context)
-        .collectAsState(initial = false)
+    val enabledFeatures by AppPreferences
+        .observeFeatures(context)
+        .collectAsState(
+            initial = setOf(
+                Feature.SWIPE_GESTURES
+            )
+        )
+
+    val pureBlackEnabled =
+        Feature.PURE_BLACK in enabledFeatures
 
     val uiFont by AppPreferences
         .observeUiFont(context)
-        .collectAsState(initial = UiFont.DEFAULT)
+        .collectAsState(
+            initial = UiFont.DEFAULT
+        )
 
     val baseColors = when {
+        isDark && pureBlackEnabled && Build.VERSION.SDK_INT < Build.VERSION_CODES.S -> {
+            FallbackAmoledColors
+        }
+
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isDark -> {
             dynamicDarkColorScheme(context)
         }
 
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             dynamicLightColorScheme(context)
-        }
-
-        isDark && amoled -> {
-            FallbackAmoledColors
         }
 
         isDark -> {
@@ -87,13 +97,13 @@ fun FlowTheme(
 
     val targetBackground = when {
         !isDark -> FlowLightBackground
-        amoled -> FlowAmoledBackground
+        pureBlackEnabled -> FlowPureBlackBackground
         else -> FlowBackground
     }
 
     val targetSurface = when {
         !isDark -> FlowLightSurface
-        amoled -> FlowAmoledSurface
+        pureBlackEnabled -> FlowPureBlackSurface
         else -> FlowSurface
     }
 
@@ -122,21 +132,51 @@ fun FlowTheme(
 
     val typography = Typography().run {
         copy(
-            displayLarge = displayLarge.copy(fontFamily = uiFont.fontFamily()),
-            displayMedium = displayMedium.copy(fontFamily = uiFont.fontFamily()),
-            displaySmall = displaySmall.copy(fontFamily = uiFont.fontFamily()),
-            headlineLarge = headlineLarge.copy(fontFamily = uiFont.fontFamily()),
-            headlineMedium = headlineMedium.copy(fontFamily = uiFont.fontFamily()),
-            headlineSmall = headlineSmall.copy(fontFamily = uiFont.fontFamily()),
-            titleLarge = titleLarge.copy(fontFamily = uiFont.fontFamily()),
-            titleMedium = titleMedium.copy(fontFamily = uiFont.fontFamily()),
-            titleSmall = titleSmall.copy(fontFamily = uiFont.fontFamily()),
-            bodyLarge = bodyLarge.copy(fontFamily = uiFont.fontFamily()),
-            bodyMedium = bodyMedium.copy(fontFamily = uiFont.fontFamily()),
-            bodySmall = bodySmall.copy(fontFamily = uiFont.fontFamily()),
-            labelLarge = labelLarge.copy(fontFamily = uiFont.fontFamily()),
-            labelMedium = labelMedium.copy(fontFamily = uiFont.fontFamily()),
-            labelSmall = labelSmall.copy(fontFamily = uiFont.fontFamily())
+            displayLarge = displayLarge.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            displayMedium = displayMedium.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            displaySmall = displaySmall.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            headlineLarge = headlineLarge.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            headlineMedium = headlineMedium.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            headlineSmall = headlineSmall.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            titleLarge = titleLarge.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            titleMedium = titleMedium.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            titleSmall = titleSmall.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            bodyLarge = bodyLarge.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            bodyMedium = bodyMedium.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            bodySmall = bodySmall.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            labelLarge = labelLarge.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            labelMedium = labelMedium.copy(
+                fontFamily = uiFont.fontFamily()
+            ),
+            labelSmall = labelSmall.copy(
+                fontFamily = uiFont.fontFamily()
+            )
         )
     }
 

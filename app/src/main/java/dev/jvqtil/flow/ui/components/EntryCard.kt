@@ -68,6 +68,8 @@ import kotlin.math.roundToInt
 
 @Composable
 fun EntryCard(
+    foldersEnabled: Boolean,
+    swipeGesturesEnabled: Boolean,
     entry: EntryUiModel,
     previewLines: Int,
     shouldAnimate: Boolean,
@@ -96,7 +98,11 @@ fun EntryCard(
     }
 
     val taskToolbarWidth = 96.dp
-    val actionToolbarWidth = 128.dp
+    val actionToolbarWidth = if (foldersEnabled) {
+        128.dp
+    } else {
+        56.dp
+    }
 
     val taskToolbarWidthPx = with(density) {
         taskToolbarWidth.toPx()
@@ -291,28 +297,30 @@ fun EntryCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    offsetX.animateTo(
-                                        targetValue = 0f,
-                                        animationSpec = tween(180)
-                                    )
+                        if (foldersEnabled) {
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        offsetX.animateTo(
+                                            targetValue = 0f,
+                                            animationSpec = tween(180)
+                                        )
 
-                                    onSwitchFolder()
-                                }
-                            },
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Folder,
-                                contentDescription =
-                                    stringResource(
-                                        R.string.switch_folder_label
-                                    ),
-                                tint =
-                                    MaterialTheme.colorScheme.primary
-                            )
+                                        onSwitchFolder()
+                                    }
+                                },
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Folder,
+                                    contentDescription =
+                                        stringResource(
+                                            R.string.switch_folder_label
+                                        ),
+                                    tint =
+                                        MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
 
                         IconButton(
@@ -356,71 +364,76 @@ fun EntryCard(
                         shape = RoundedCornerShape(cornerRadius)
                     )
                     .then(dragHandleModifier)
-                    .pointerInput(entry.id) {
-                        detectHorizontalDragGestures(
-                            onHorizontalDrag = { _, dragAmount ->
+                    .then(
+                        if (swipeGesturesEnabled) {
+                            Modifier.pointerInput(entry.id) {
+                                detectHorizontalDragGestures(
+                                    onHorizontalDrag = { _, dragAmount ->
 
-                                if (
-                                    isDeleting ||
-                                    isDragging
-                                ) {
-                                    return@detectHorizontalDragGestures
-                                }
-
-                                scope.launch {
-                                    val newOffset =
-                                        (
-                                                offsetX.value +
-                                                        dragAmount
-                                                ).coerceIn(
-                                                -actionToolbarWidthPx,
-                                                taskToolbarWidthPx
-                                            )
-
-                                    offsetX.snapTo(newOffset)
-                                }
-                            },
-                            onDragEnd = {
-                                scope.launch {
-                                    val taskToolbarThreshold =
-                                        taskToolbarWidthPx / 2f
-
-                                    val actionToolbarThreshold =
-                                        actionToolbarWidthPx / 2f
-
-                                    val target =
-                                        when {
-                                            offsetX.value >=
-                                                    taskToolbarThreshold -> {
-                                                taskToolbarWidthPx
-                                            }
-
-                                            offsetX.value <=
-                                                    -actionToolbarThreshold -> {
-                                                -actionToolbarWidthPx
-                                            }
-
-                                            else -> {
-                                                0f
-                                            }
+                                        if (
+                                            isDeleting ||
+                                            isDragging
+                                        ) {
+                                            return@detectHorizontalDragGestures
                                         }
 
-                                    offsetX.animateTo(
-                                        targetValue = target,
-                                        animationSpec = tween(220)
-                                    )
-                                }
-                            },
-                            onDragCancel = {
-                                scope.launch {
-                                    offsetX.animateTo(
-                                        targetValue = 0f,
-                                        animationSpec = tween(220)
-                                    )
-                                }
+                                        scope.launch {
+                                            val newOffset =
+                                                (
+                                                        offsetX.value +
+                                                                dragAmount
+                                                        ).coerceIn(
+                                                        -actionToolbarWidthPx,
+                                                        taskToolbarWidthPx
+                                                    )
+
+                                            offsetX.snapTo(newOffset)
+                                        }
+                                    },
+                                    onDragEnd = {
+                                        scope.launch {
+                                            val taskToolbarThreshold =
+                                                taskToolbarWidthPx / 2f
+
+                                            val actionToolbarThreshold =
+                                                actionToolbarWidthPx / 2f
+
+                                            val target =
+                                                when {
+                                                    offsetX.value >=
+                                                            taskToolbarThreshold -> {
+                                                        taskToolbarWidthPx
+                                                    }
+
+                                                    offsetX.value <=
+                                                            -actionToolbarThreshold -> {
+                                                        -actionToolbarWidthPx
+                                                    }
+
+                                                    else -> {
+                                                        0f
+                                                    }
+                                                }
+
+                                            offsetX.animateTo(
+                                                targetValue = target,
+                                                animationSpec = tween(220)
+                                            )
+                                        }
+                                    },
+                                    onDragCancel = {
+                                        scope.launch {
+                                            offsetX.animateTo(
+                                                targetValue = 0f,
+                                                animationSpec = tween(220)
+                                            )
+                                        }
+                                    }
+                                )
                             }
-                        )
-                    }
+                        } else {
+                            Modifier
+                        })
                     .clickable {
                         if (
                             offsetX.value < -1f ||

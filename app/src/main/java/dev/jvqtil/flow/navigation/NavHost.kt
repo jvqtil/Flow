@@ -39,6 +39,7 @@ import dev.jvqtil.flow.data.AttachmentStorage
 import dev.jvqtil.flow.data.BackupManager
 import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
+import dev.jvqtil.flow.data.Feature
 import dev.jvqtil.flow.data.FlowRepository
 import dev.jvqtil.flow.ui.EntryUiModel
 import dev.jvqtil.flow.ui.FlowFireModel
@@ -192,18 +193,25 @@ fun FlowNavHost(
         mutableStateOf(false)
     }
 
+    val enabledFeatures by AppPreferences
+        .observeFeatures(context)
+        .collectAsStateWithLifecycle(
+            initialValue = Feature.entries
+                .filter { it.defaultEnabled }
+                .toSet()
+        )
+
+    val foldersEnabled =
+        Feature.FOLDERS in enabledFeatures
+
+    val swipeGesturesEnabled =
+        Feature.SWIPE_GESTURES in enabledFeatures
+
     val defaultEntryType by
     AppPreferences
         .observeDefaultEntryType(context)
         .collectAsStateWithLifecycle(
             initialValue = ENTRY_TYPE_NOTE
-        )
-
-    val amoled by
-    AppPreferences
-        .observeAmoled(context)
-        .collectAsStateWithLifecycle(
-            initialValue = false
         )
 
     val uiFont by
@@ -293,12 +301,14 @@ fun FlowNavHost(
                         )
                     }
                 },
-                entries = if (selectedFolderId != null) {
+                foldersEnabled = foldersEnabled,
+                swipeGesturesEnabled = swipeGesturesEnabled,
+                entries = if (foldersEnabled && selectedFolderId != null) {
                     uiState.entries.filter {
                         it.folderId == selectedFolderId
                     }
                 } else {
-                    emptyList()
+                    uiState.entries
                 },
                 folders = uiState.folders,
                 selectedFolderId = selectedFolderId ?: "",
@@ -407,21 +417,22 @@ fun FlowNavHost(
 
         composable(SETTINGS_ROUTE) {
             SettingsScreen(
+                enabledFeatures = enabledFeatures,
+                onFeatureChanged = { feature, enabled ->
+                    scope.launch {
+                        AppPreferences.setFeature(
+                            context = context,
+                            feature = feature,
+                            enabled = enabled
+                        )
+                    }
+                },
                 defaultEntryType = defaultEntryType,
                 onDefaultEntryTypeChanged = { type ->
                     scope.launch {
                         AppPreferences.setDefaultEntryType(
                             context = context,
                             type = type
-                        )
-                    }
-                },
-                amoled = amoled,
-                onAmoledChanged = { enabled ->
-                    scope.launch {
-                        AppPreferences.setAmoled(
-                            context = context,
-                            enabled = enabled
                         )
                     }
                 },
@@ -691,6 +702,7 @@ fun FlowNavHost(
 
             currentEntry?.let { entry ->
                 EditorScreen(
+                    foldersEnabled = foldersEnabled,
                     entry = entry,
                     attachments = attachments,
                     attachmentStorage = attachmentStorage,
@@ -807,21 +819,6 @@ fun FlowNavHost(
                             )
                         }
                     },
-                    onDeleteAttachment = { attachment ->
-                        flowFireModel.deleteAttachment(
-                            attachment
-                        )
-                    },
-                    onRestoreAttachment = { attachment ->
-                        flowFireModel.restoreAttachment(
-                            attachment
-                        )
-                    },
-                    onPermanentlyDeleteAttachment = { attachment ->
-                        flowFireModel.permanentlyDeleteAttachment(
-                            attachment
-                        )
-                    },
                     onOpenAttachment = { attachment ->
                         runCatching {
                             val file =
@@ -863,8 +860,22 @@ fun FlowNavHost(
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
+                    },
+                    onDeleteAttachment = { attachment ->
+                        flowFireModel.deleteAttachment(
+                            attachment
+                        )
+                    },
+                    onRestoreAttachment = { attachment ->
+                        flowFireModel.restoreAttachment(
+                            attachment
+                        )
                     }
-                )
+                ) { attachment ->
+                    flowFireModel.permanentlyDeleteAttachment(
+                        attachment
+                    )
+                }
             }
         }
     }

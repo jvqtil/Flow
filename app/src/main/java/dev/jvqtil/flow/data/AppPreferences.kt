@@ -1,11 +1,11 @@
 package dev.jvqtil.flow.data
 
 import android.content.Context
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.jvqtil.flow.ui.models.EditorFont
 import dev.jvqtil.flow.ui.models.KeyboardMode
@@ -18,15 +18,78 @@ private val Context.dataStore by preferencesDataStore(
     name = "flow_preferences"
 )
 
+enum class Feature(
+    val defaultEnabled: Boolean
+) {
+    FOLDERS(
+        defaultEnabled = false
+    ),
+
+    SWIPE_GESTURES(
+        defaultEnabled = true
+    ),
+
+    PURE_BLACK(
+        defaultEnabled = false
+    )
+}
+
 object AppPreferences {
+
+    private val ENABLED_FEATURES_KEY =
+        stringSetPreferencesKey("enabled_features")
+
+    private val DEFAULT_ENABLED_FEATURES =
+        Feature.entries
+            .filter { it.defaultEnabled }
+            .toSet()
+
+    fun observeFeatures(
+        context: Context
+    ): Flow<Set<Feature>> =
+        context.dataStore.data.map { preferences ->
+            preferences[ENABLED_FEATURES_KEY]
+                ?.mapNotNull { value ->
+                    runCatching {
+                        Feature.valueOf(value)
+                    }.getOrNull()
+                }
+                ?.toSet()
+                ?: DEFAULT_ENABLED_FEATURES
+        }
+
+    suspend fun setFeature(
+        context: Context,
+        feature: Feature,
+        enabled: Boolean
+    ) {
+        context.dataStore.edit { preferences ->
+            val features =
+                preferences[ENABLED_FEATURES_KEY]
+                    ?.mapNotNull { value ->
+                        runCatching {
+                            Feature.valueOf(value)
+                        }.getOrNull()
+                    }
+                    ?.toMutableSet()
+                    ?: DEFAULT_ENABLED_FEATURES.toMutableSet()
+
+            if (enabled) {
+                features += feature
+            } else {
+                features -= feature
+            }
+
+            preferences[ENABLED_FEATURES_KEY] =
+                features.map { it.name }.toSet()
+        }
+    }
+
     private val LAST_UPDATE_CHECK =
         longPreferencesKey("last_update_check")
 
     private val DEFAULT_ENTRY_TYPE_KEY =
         stringPreferencesKey("default_entry_type")
-
-    private val AMOLED_KEY =
-        booleanPreferencesKey("AMOLED")
 
     private val UI_FONT_KEY =
         stringPreferencesKey("ui_font")
@@ -42,13 +105,12 @@ object AppPreferences {
 
     suspend fun getLastUpdateCheck(
         context: Context
-    ): Long {
-        return context.dataStore.data
+    ): Long =
+        context.dataStore.data
             .map { preferences ->
                 preferences[LAST_UPDATE_CHECK] ?: 0L
             }
             .first()
-    }
 
     suspend fun setLastUpdateCheck(
         context: Context,
@@ -81,27 +143,10 @@ object AppPreferences {
         }
     }
 
-    fun observeAmoled(
-        context: Context
-    ): Flow<Boolean> {
-        return context.dataStore.data.map { preferences ->
-            preferences[AMOLED_KEY] ?: false
-        }
-    }
-
-    suspend fun setAmoled(
-        context: Context,
-        enabled: Boolean
-    ) {
-        context.dataStore.edit { preferences ->
-            preferences[AMOLED_KEY] = enabled
-        }
-    }
-
     fun observeUiFont(
         context: Context
-    ): Flow<UiFont> {
-        return context.dataStore.data.map { preferences ->
+    ): Flow<UiFont> =
+        context.dataStore.data.map { preferences ->
             preferences[UI_FONT_KEY]
                 ?.let {
                     runCatching {
@@ -110,7 +155,6 @@ object AppPreferences {
                 }
                 ?: UiFont.DEFAULT
         }
-    }
 
     suspend fun setUiFont(
         context: Context,
@@ -123,8 +167,8 @@ object AppPreferences {
 
     fun observeEditorFont(
         context: Context
-    ): Flow<EditorFont> {
-        return context.dataStore.data.map { preferences ->
+    ): Flow<EditorFont> =
+        context.dataStore.data.map { preferences ->
             preferences[EDITOR_FONT_KEY]
                 ?.let {
                     runCatching {
@@ -133,7 +177,6 @@ object AppPreferences {
                 }
                 ?: EditorFont.UI_FONT
         }
-    }
 
     suspend fun setEditorFont(
         context: Context,
@@ -146,11 +189,10 @@ object AppPreferences {
 
     fun observePreviewLines(
         context: Context
-    ): Flow<Int> {
-        return context.dataStore.data.map { preferences ->
+    ): Flow<Int> =
+        context.dataStore.data.map { preferences ->
             preferences[PREVIEW_LINES_KEY] ?: 4
         }
-    }
 
     suspend fun setPreviewLines(
         context: Context,

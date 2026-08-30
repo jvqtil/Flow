@@ -94,6 +94,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun EditorScreen(
+    foldersEnabled: Boolean,
     entry: EntryUiModel,
     attachments: List<Attachment>,
     attachmentStorage: AttachmentStorage,
@@ -280,74 +281,76 @@ fun EditorScreen(
                     horizontalArrangement =
                         Arrangement.spacedBy(4.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .height(42.dp)
-                            .widthIn(
-                                min = 80.dp,
-                                max = 130.dp
-                            )
-                            .background(
-                                MaterialTheme.colorScheme
-                                    .surfaceContainer,
-                                RoundedCornerShape(16.dp)
-                            )
-                            .clickable {
-                                showFolderPicker = true
-                            }
-                            .padding(
-                                horizontal = 12.dp
-                            ),
-                        contentAlignment =
-                            Alignment.Center
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(
-                                horizontal = 8.dp
-                            ),
-                            verticalAlignment =
-                                Alignment.CenterVertically,
-                            horizontalArrangement =
-                                Arrangement.spacedBy(4.dp)
+                    if (foldersEnabled) {
+                        Box(
+                            modifier = Modifier
+                                .height(42.dp)
+                                .widthIn(
+                                    min = 80.dp,
+                                    max = 130.dp
+                                )
+                                .background(
+                                    MaterialTheme.colorScheme
+                                        .surfaceContainer,
+                                    RoundedCornerShape(16.dp)
+                                )
+                                .clickable {
+                                    showFolderPicker = true
+                                }
+                                .padding(
+                                    horizontal = 12.dp
+                                ),
+                            contentAlignment =
+                                Alignment.Center
                         ) {
-                            Icon(
-                                imageVector =
-                                    Icons.Default.Folder,
-                                contentDescription = null,
-                                tint =
-                                    MaterialTheme.colorScheme
-                                        .onBackground,
-                                modifier =
-                                    Modifier.size(20.dp)
-                            )
+                            Row(
+                                modifier = Modifier.padding(
+                                    horizontal = 8.dp
+                                ),
+                                verticalAlignment =
+                                    Alignment.CenterVertically,
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector =
+                                        Icons.Default.Folder,
+                                    contentDescription = null,
+                                    tint =
+                                        MaterialTheme.colorScheme
+                                            .onBackground,
+                                    modifier =
+                                        Modifier.size(20.dp)
+                                )
 
-                            Text(
-                                text =
-                                    if (
-                                        selectedFolder?.id ==
-                                        MASTER_FOLDER_ID &&
-                                        selectedFolder.name
-                                            .isBlank()
-                                    ) {
-                                        stringResource(
-                                            R.string
-                                                .master_folder_label
-                                        )
-                                    } else {
-                                        selectedFolder
-                                            ?.name
-                                            .orEmpty()
-                                    },
-                                maxLines = 1,
-                                overflow =
-                                    TextOverflow.Ellipsis,
-                                style =
-                                    MaterialTheme.typography
-                                        .labelLarge,
-                                color =
-                                    MaterialTheme.colorScheme
-                                        .onBackground
-                            )
+                                Text(
+                                    text =
+                                        if (
+                                            selectedFolder?.id ==
+                                            MASTER_FOLDER_ID &&
+                                            selectedFolder.name
+                                                .isBlank()
+                                        ) {
+                                            stringResource(
+                                                R.string
+                                                    .master_folder_label
+                                            )
+                                        } else {
+                                            selectedFolder
+                                                ?.name
+                                                .orEmpty()
+                                        },
+                                    maxLines = 1,
+                                    overflow =
+                                        TextOverflow.Ellipsis,
+                                    style =
+                                        MaterialTheme.typography
+                                            .labelLarge,
+                                    color =
+                                        MaterialTheme.colorScheme
+                                            .onBackground
+                                )
+                            }
                         }
                     }
 
