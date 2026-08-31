@@ -88,21 +88,6 @@ object AppPreferences {
     private val LAST_UPDATE_CHECK =
         longPreferencesKey("last_update_check")
 
-    private val DEFAULT_ENTRY_TYPE_KEY =
-        stringPreferencesKey("default_entry_type")
-
-    private val UI_FONT_KEY =
-        stringPreferencesKey("ui_font")
-
-    private val EDITOR_FONT_KEY =
-        stringPreferencesKey("editor_font")
-
-    private val PREVIEW_LINES_KEY =
-        intPreferencesKey("preview_lines")
-
-    private val KEYBOARD_MODE =
-        stringPreferencesKey("keyboard_mode")
-
     suspend fun getLastUpdateCheck(
         context: Context
     ): Long =
@@ -120,6 +105,40 @@ object AppPreferences {
             preferences[LAST_UPDATE_CHECK] = timestamp
         }
     }
+
+    private val CURRENT_FOLDER_ID =
+        stringPreferencesKey("last_folder_id")
+
+    fun observeCurrentFolderId(
+        context: Context
+    ): Flow<String?> =
+        context.dataStore.data.map { preferences ->
+            preferences[CURRENT_FOLDER_ID]
+        }
+
+    suspend fun setCurrentFolderId(
+        context: Context,
+        folderId: String
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[CURRENT_FOLDER_ID] = folderId
+        }
+    }
+
+    private val DEFAULT_ENTRY_TYPE_KEY =
+        stringPreferencesKey("default_entry_type")
+
+    private val UI_FONT_KEY =
+        stringPreferencesKey("ui_font")
+
+    private val EDITOR_FONT_KEY =
+        stringPreferencesKey("editor_font")
+
+    private val PREVIEW_LINES_KEY =
+        intPreferencesKey("preview_lines")
+
+    private val KEYBOARD_MODE =
+        stringPreferencesKey("keyboard_mode")
 
     fun observeDefaultEntryType(
         context: Context

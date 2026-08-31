@@ -96,6 +96,12 @@ fun FlowNavHost(
         }
     }
 
+    val currentFolderId by AppPreferences
+        .observeCurrentFolderId(context)
+        .collectAsStateWithLifecycle(
+            initialValue = null
+        )
+
     val exportLauncher =
         rememberLauncherForActivityResult(
             contract =
@@ -285,7 +291,12 @@ fun FlowNavHost(
     ) {
         composable(HOME_ROUTE) {
             val selectedFolderId =
-                uiState.selectedFolderId
+                currentFolderId
+                    ?.takeIf { id ->
+                        uiState.folders.any { folder ->
+                            folder.id == id
+                        }
+                    }
                     ?: uiState.folders.firstOrNull()?.id
 
             HomeScreen(
@@ -329,9 +340,14 @@ fun FlowNavHost(
                 deletingEntriesIds =
                     uiState.deletingEntriesIds,
                 onSelectFolder = { folderId ->
-                    flowFireModel.selectFolder(
-                        folderId
-                    )
+                    flowFireModel.selectFolder(folderId)
+
+                    scope.launch {
+                        AppPreferences.setCurrentFolderId(
+                            context = context,
+                            folderId = folderId
+                        )
+                    }
                 },
                 onCreateFolder = { name ->
                     flowFireModel.createFolder(
