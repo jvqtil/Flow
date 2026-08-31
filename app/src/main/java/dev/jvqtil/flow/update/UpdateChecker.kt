@@ -74,26 +74,41 @@ private fun isNewerVersion(
     latest: String,
     current: String
 ): Boolean {
-    val latestParts = latest.split(".")
-    val currentParts = current.split(".")
+    fun parseVersion(version: String): Pair<List<Int>, Int> {
+        val parts = version.split("-", limit = 2)
 
-    val size = maxOf(
-        latestParts.size,
-        currentParts.size
-    )
+        val versionParts =
+            parts[0]
+                .split(".")
+                .map { it.toIntOrNull() ?: 0 }
+
+        val revision =
+            parts
+                .getOrNull(1)
+                ?.toIntOrNull()
+                ?: 0
+
+        return versionParts to revision
+    }
+
+    val (latestVersion, latestRevision) =
+        parseVersion(latest)
+
+    val (currentVersion, currentRevision) =
+        parseVersion(current)
+
+    val size =
+        maxOf(
+            latestVersion.size,
+            currentVersion.size
+        )
 
     for (i in 0 until size) {
         val latestPart =
-            latestParts
-                .getOrNull(i)
-                ?.toIntOrNull()
-                ?: return false
+            latestVersion.getOrNull(i) ?: 0
 
         val currentPart =
-            currentParts
-                .getOrNull(i)
-                ?.toIntOrNull()
-                ?: 0
+            currentVersion.getOrNull(i) ?: 0
 
         when {
             latestPart > currentPart -> return true
@@ -101,5 +116,5 @@ private fun isNewerVersion(
         }
     }
 
-    return false
+    return latestRevision > currentRevision
 }

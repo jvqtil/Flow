@@ -83,7 +83,7 @@ fun FlowNavHost(
                 UpdateChecker().check(
                     currentVersion =
                         BuildConfig.VERSION_NAME
-                            .substringBefore("-")
+                            .removeSuffix("-debug")
                 )
             }.onSuccess { update ->
                 updateAvailable = update
@@ -299,6 +299,9 @@ fun FlowNavHost(
                             )
                         )
                     }
+                },
+                onDismissUpdate = {
+                    updateAvailable = null
                 },
                 foldersEnabled = foldersEnabled,
                 swipeGesturesEnabled = swipeGesturesEnabled,

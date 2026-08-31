@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Icon
@@ -78,10 +79,11 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun HomeScreen(
-    foldersEnabled: Boolean,
-    swipeGesturesEnabled: Boolean,
     updateAvailable: UpdateModel?,
     onUpdateClick: () -> Unit,
+    onDismissUpdate: () -> Unit,
+    foldersEnabled: Boolean,
+    swipeGesturesEnabled: Boolean,
     entries: List<EntryUiModel>,
     folders: List<FolderUiModel>,
     selectedFolderId: String,
@@ -315,19 +317,22 @@ fun HomeScreen(
         ) {
             updateAvailable?.let { update ->
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            onClick = onUpdateClick
-                        ),
+                    modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Row(
-                        modifier = Modifier.padding(
-                            horizontal = 14.dp,
-                            vertical = 10.dp
-                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                onClick = onUpdateClick
+                            )
+                            .padding(
+                                start = 14.dp,
+                                end = 6.dp,
+                                top = 10.dp,
+                                bottom = 10.dp
+                            ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -343,8 +348,21 @@ fun HomeScreen(
                         Text(
                             text = "Update available • v${update.version}",
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.weight(1f)
                         )
+
+                        IconButton(
+                            onClick = onDismissUpdate,
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                 }
             }
