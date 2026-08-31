@@ -187,6 +187,18 @@ class FlowFireModel(
         }
     }
 
+    fun updateFoldersPositions(
+        folderIds: List<String>
+    ) {
+        viewModelScope.launch {
+            databaseMutex.withLock {
+                repository.updateFoldersPositions(
+                    folderIds
+                )
+            }
+        }
+    }
+
     fun renameFolder(
         folderId: String, name: String
     ) {

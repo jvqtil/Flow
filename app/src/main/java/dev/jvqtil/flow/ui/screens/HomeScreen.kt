@@ -13,7 +13,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Icon
@@ -54,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -106,6 +108,7 @@ fun HomeScreen(
     onDeleteEntry: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onReorderEntries: (List<String>) -> Unit,
+    onReorderFolders: (List<String>) -> Unit,
     onToggleCompleted: (String) -> Unit,
     onToggleTaskNote: (String) -> Unit,
     onMoveEntryToFolder: (String, String) -> Unit
@@ -143,6 +146,14 @@ fun HomeScreen(
 
     var folderSwitchDirection by remember {
         mutableIntStateOf(1)
+    }
+
+    var localFolders by remember {
+        mutableStateOf(folders)
+    }
+
+    LaunchedEffect(folders) {
+        localFolders = folders
     }
 
     var renameTarget by remember {
@@ -254,6 +265,38 @@ fun HomeScreen(
             }
         }
     }
+
+    val folderListState = rememberLazyListState()
+
+    val reorderableFolderState =
+        rememberReorderableLazyListState(
+            lazyListState = folderListState
+        ) { from, to ->
+            val fromId = from.key as String
+            val toId = to.key as String
+
+            val fromIndex = localFolders.indexOfFirst {
+                it.id == fromId
+            }
+
+            val toIndex = localFolders.indexOfFirst {
+                it.id == toId
+            }
+
+            if (
+                fromIndex >= 0 &&
+                toIndex >= 0 &&
+                fromIndex != toIndex
+            ) {
+                localFolders =
+                    localFolders.toMutableList().apply {
+                        add(
+                            toIndex,
+                            removeAt(fromIndex)
+                        )
+                    }
+            }
+        }
 
     Box(
         modifier = Modifier
@@ -391,13 +434,15 @@ fun HomeScreen(
                 ) {
                     LazyRow(
                         modifier = Modifier.fillMaxWidth(),
+                        state = folderListState,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(
-                            items = folders,
+                            items = localFolders,
                             key = { it.id }
                         ) { folder ->
-                            val selected = folder.id == selectedFolderId
+                            val selected =
+                                folder.id == selectedFolderId
 
                             val cornerRadius by animateDpAsState(
                                 targetValue = if (selected) {
@@ -409,71 +454,134 @@ fun HomeScreen(
                                 label = "folderCornerRadius"
                             )
 
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        color = if (selected) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceContainer
-                                        },
-                                        shape = RoundedCornerShape(cornerRadius)
-                                    )
-                                    .combinedClickable(
-                                        onClick = {
-                                            if (!selected) {
-                                                val currentIndex = folders.indexOfFirst {
-                                                    it.id == selectedFolderId
-                                                }
+                            ReorderableItem(
+                                state = reorderableFolderState,
+                                key = folder.id
+                            ) { _ ->
+                                val displayName =
+                                    if (
+                                        folder.id == MASTER_FOLDER_ID &&
+                                        folder.name.isBlank()
+                                    ) {
+                                        stringResource(R.string.master_folder_label)
+                                    } else {
+                                        folder.name
+                                    }
 
-                                                val newIndex = folders.indexOfFirst {
-                                                    it.id == folder.id
-                                                }
-
-                                                folderSwitchDirection =
-                                                    if (newIndex > currentIndex) {
-                                                        1
-                                                    } else {
-                                                        -1
-                                                    }
-
-                                                closeActions()
-                                                onSelectFolder(folder.id)
-                                            }
-                                        },
-                                        onLongClick = {
-                                            closeActions()
-                                            folderActionTarget = folder
-                                        }
-                                    )
-                                    .padding(
-                                        horizontal = 16.dp,
-                                        vertical = 9.dp
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text =
-                                            if (folder.id == MASTER_FOLDER_ID &&
-                                                folder.name.isBlank()
-                                            ) {
-                                                stringResource(R.string.master_folder_label)
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            color = if (selected) {
+                                                MaterialTheme.colorScheme.primary
                                             } else {
-                                                folder.name
+                                                MaterialTheme.colorScheme.surfaceContainer
                                             },
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        color = if (selected) {
-                                            MaterialTheme.colorScheme.onPrimary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface
-                                        },
-                                        style = MaterialTheme.typography.labelLarge
-                                    )
+                                            shape = RoundedCornerShape(cornerRadius)
+                                        )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.height(38.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .pointerInput(
+                                                    folder.id,
+                                                    selected
+                                                ) {
+                                                    detectTapGestures(
+                                                        onTap = {
+                                                            if (!selected) {
+                                                                val currentIndex =
+                                                                    localFolders.indexOfFirst {
+                                                                        it.id == selectedFolderId
+                                                                    }
+
+                                                                val newIndex =
+                                                                    localFolders.indexOfFirst {
+                                                                        it.id == folder.id
+                                                                    }
+
+                                                                folderSwitchDirection =
+                                                                    if (newIndex > currentIndex) {
+                                                                        1
+                                                                    } else {
+                                                                        -1
+                                                                    }
+
+                                                                closeActions()
+                                                                onSelectFolder(folder.id)
+                                                            }
+                                                        },
+                                                        onLongPress = {
+                                                            closeActions()
+
+                                                            folderActionTarget = folder
+                                                            renameTarget = null
+                                                            renameText = ""
+                                                        }
+                                                    )
+                                                }
+                                                .padding(
+                                                    start = 16.dp,
+                                                    end = 4.dp
+                                                ),
+                                            contentAlignment = Alignment.CenterStart
+                                        ) {
+                                            Text(
+                                                text = displayName,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                color = if (selected) {
+                                                    MaterialTheme.colorScheme.onPrimary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
+                                                },
+                                                style = MaterialTheme.typography.labelLarge
+                                            )
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .longPressDraggableHandle(
+                                                    onDragStarted = {
+                                                        folderActionTarget = null
+                                                        renameTarget = null
+                                                        renameText = ""
+
+                                                        closeActions()
+                                                    },
+                                                    onDragStopped = {
+                                                        onReorderFolders(
+                                                            localFolders.map {
+                                                                it.id
+                                                            }
+                                                        )
+                                                    }
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.DragIndicator,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp),
+                                                tint = if (selected) {
+                                                    MaterialTheme.colorScheme.onPrimary.copy(
+                                                        alpha = 0.75f
+                                                    )
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                                        alpha = 0.65f
+                                                    )
+                                                }
+                                            )
+                                        }
+
+                                        Spacer(
+                                            modifier = Modifier.width(4.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -533,16 +641,18 @@ fun HomeScreen(
                             slideInHorizontally(
                                 initialOffsetX = { direction * it / 4 },
                                 animationSpec = tween(250)
-                            ) + fadeIn(
-                                animationSpec = tween(180)
-                            )
+                            ) +
+                                    fadeIn(
+                                        animationSpec = tween(180)
+                                    )
                             ).togetherWith(
                             slideOutHorizontally(
                                 targetOffsetX = { -direction * it / 4 },
                                 animationSpec = tween(250)
-                            ) + fadeOut(
-                                animationSpec = tween(160)
-                            )
+                            ) +
+                                    fadeOut(
+                                        animationSpec = tween(160)
+                                    )
                         )
                 },
                 label = "folderContent"
@@ -596,9 +706,10 @@ fun HomeScreen(
                                         entry.id !in deletingEntriesIds &&
                                         entry.id != restoringEntryId
                                     ) {
-                                        val index = localEntries.indexOfFirst {
-                                            it.id == entry.id
-                                        }
+                                        val index =
+                                            localEntries.indexOfFirst {
+                                                it.id == entry.id
+                                            }
 
                                         deletedEntriesPositions =
                                             deletedEntriesPositions +
@@ -677,16 +788,18 @@ fun HomeScreen(
                 slideInVertically(
                     initialOffsetY = { it },
                     animationSpec = tween(300)
-                ) + fadeIn(
-                    animationSpec = tween(200)
-                ),
+                ) +
+                        fadeIn(
+                            animationSpec = tween(200)
+                        ),
             exit =
                 slideOutVertically(
                     targetOffsetY = { it },
                     animationSpec = tween(140)
-                ) + fadeOut(
-                    animationSpec = tween(100)
-                )
+                ) +
+                        fadeOut(
+                            animationSpec = tween(100)
+                        )
         ) {
             undoOperation?.let { operation ->
                 val undoId = when (operation) {
@@ -710,11 +823,15 @@ fun HomeScreen(
     }
 
     folderActionTarget?.let { folder ->
-        val displayName = if (folder.id == MASTER_FOLDER_ID && folder.name.isBlank()) {
-            stringResource(R.string.master_folder_label)
-        } else {
-            folder.name
-        }
+        val displayName =
+            if (
+                folder.id == MASTER_FOLDER_ID &&
+                folder.name.isBlank()
+            ) {
+                stringResource(R.string.master_folder_label)
+            } else {
+                folder.name
+            }
 
         FolderActionsBottomSheet(
             folder = folder,
@@ -811,29 +928,32 @@ fun HomeScreen(
         entryToMove != null
     ) {
         FolderChoiceBottomSheet(
-            folders = folders,
+            folders = localFolders,
             selectedFolderId = entryToMove!!.folderId,
             onSelect = { folderId ->
                 entryToMove?.let { entry ->
-                    localEntries =
-                        localEntries.map { current ->
-                            if (current.id == entry.id) {
-                                current.copy(
-                                    folderId = folderId
-                                )
-                            } else {
-                                current
+                    if (folderId != entry.folderId) {
+                        localEntries =
+                            localEntries.map { current ->
+                                if (current.id == entry.id) {
+                                    current.copy(
+                                        folderId = folderId
+                                    )
+                                } else {
+                                    current
+                                }
                             }
-                        }
 
-                    onMoveEntryToFolder(
-                        entry.id,
-                        folderId
-                    )
+                        onMoveEntryToFolder(
+                            entry.id,
+                            folderId
+                        )
+                    }
                 }
 
                 showFolderPicker = false
                 entryToMove = null
+                createFolderForMove = false
             },
             onCreateFolder = {
                 showFolderPicker = false

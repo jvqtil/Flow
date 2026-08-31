@@ -60,4 +60,14 @@ interface FolderDao {
     suspend fun upsert(
         folder: Folder
     )
+
+    @Query(
+        "UPDATE folders " +
+                "SET position = :position " +
+                "WHERE id = :id"
+    )
+    suspend fun updatePosition(
+        id: String,
+        position: Long
+    )
 }

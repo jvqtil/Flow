@@ -171,6 +171,19 @@ class FlowRepository(
         }
     }
 
+    suspend fun updateFoldersPositions(
+        folderIds: List<String>
+    ) {
+        database.withWriteTransaction {
+            folderIds.forEachIndexed { index, id ->
+                folderDao.updatePosition(
+                    id = id,
+                    position = index.toLong()
+                )
+            }
+        }
+    }
+
     suspend fun moveEntryToFolder(
         entry: Entry,
         targetFolderId: String

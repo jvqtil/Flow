@@ -408,6 +408,11 @@ fun FlowNavHost(
                         entryIds = entryIds
                     )
                 },
+                onReorderFolders = { folderIds ->
+                    flowFireModel.updateFoldersPositions(
+                        folderIds
+                    )
+                },
                 onToggleCompleted =
                     flowFireModel::toggleCompleted,
                 onToggleTaskNote =
