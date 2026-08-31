@@ -289,7 +289,33 @@ class FlowFireModel(
         }
     }
 
-    fun saveNewEntry(
+    suspend fun saveNewEntry(
+        entry: EntryUiModel
+    ): Boolean {
+        val normalizedEntry = entry.copy(
+            text = trimEmptyLines(
+                entry.text
+            )
+        )
+
+        if (normalizedEntry.folderId.isBlank()) {
+            return false
+        }
+
+        databaseMutex.withLock {
+            if (repository.findById(normalizedEntry.id) != null) {
+                return false
+            }
+
+            repository.insertAtTop(
+                normalizedEntry.toDataModel()
+            )
+        }
+
+        return true
+    }
+
+    suspend fun updateEntry(
         entry: EntryUiModel
     ) {
         val normalizedEntry = entry.copy(
@@ -298,50 +324,18 @@ class FlowFireModel(
             )
         )
 
-        if (normalizedEntry.text.isBlank() || normalizedEntry.folderId.isBlank()) {
-            return
-        }
-
-        viewModelScope.launch {
-            databaseMutex.withLock {
-                repository.insertAtTop(
-                    normalizedEntry.toDataModel()
-                )
-            }
-        }
-    }
-
-    fun updateEntry(
-        entry: EntryUiModel, hasAttachments: Boolean
-    ) {
-        val normalizedEntry = entry.copy(
-            text = trimEmptyLines(
-                entry.text
-            )
-        )
-
-        viewModelScope.launch {
-            databaseMutex.withLock {
-                val existing = repository.findById(
+        databaseMutex.withLock {
+            val existing =
+                repository.findById(
                     normalizedEntry.id
                 ) ?: return@withLock
 
-                if (normalizedEntry.text.isBlank() && !hasAttachments) {
-                    deleteExistingEntry(
-                        existing
-                    )
-
-                    return@withLock
-                }
-
-                repository.update(
-                    normalizedEntry.toDataModel(
-                        createdAt = existing.createdAt,
-
-                        position = existing.position
-                    )
+            repository.update(
+                normalizedEntry.toDataModel(
+                    createdAt = existing.createdAt,
+                    position = existing.position
                 )
-            }
+            )
         }
     }
 

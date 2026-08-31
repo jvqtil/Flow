@@ -84,7 +84,11 @@ fun EntryCard(
     onSwitchFolder: () -> Unit,
     onAnimationFinished: () -> Unit
 ) {
-    val visibleState = remember(entry.id) {
+    val visibleState = remember(
+        entry.id,
+        shouldAnimate,
+        isDeleting
+    ) {
         MutableTransitionState(
             !(shouldAnimate && !isDeleting)
         )

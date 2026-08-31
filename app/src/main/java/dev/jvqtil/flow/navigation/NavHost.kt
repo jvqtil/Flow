@@ -41,7 +41,6 @@ import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.data.Feature
 import dev.jvqtil.flow.data.FlowRepository
-import dev.jvqtil.flow.ui.EntryUiModel
 import dev.jvqtil.flow.ui.FlowFireModel
 import dev.jvqtil.flow.ui.FlowFireModelFactory
 import dev.jvqtil.flow.ui.models.EditorFont
@@ -531,8 +530,8 @@ fun FlowNavHost(
                 routeEntryId,
                 isNew
             ) {
-                mutableStateOf<EntryUiModel?>(
-                    null
+                mutableStateOf(
+                    null as dev.jvqtil.flow.ui.EntryUiModel?
                 )
             }
 
@@ -598,11 +597,6 @@ fun FlowNavHost(
                 skipSaveOnDispose
             )
 
-            val latestAttachments by
-            rememberUpdatedState(
-                attachments
-            )
-
             val latestEntryPersisted by
             rememberUpdatedState(
                 entryPersisted
@@ -625,34 +619,31 @@ fun FlowNavHost(
                     isNew &&
                     !entryPersisted
                 ) {
-                    if (
-                        entryToSave.text.isBlank() &&
-                        attachments.isEmpty()
-                    ) {
+                    if (entryToSave.text.isBlank()) {
                         return@LaunchedEffect
                     }
 
-                    flowFireModel.saveNewEntry(
-                        entryToSave
-                    )
+                    val saved =
+                        flowFireModel.saveNewEntry(
+                            entryToSave
+                        )
 
-                    entryPersisted = true
-                    shouldScrollHomeToTop = true
+                    if (saved) {
+                        entryPersisted = true
+                        shouldScrollHomeToTop = true
+                    }
 
                     return@LaunchedEffect
                 }
 
                 flowFireModel.updateEntry(
-                    entry = entryToSave,
-                    hasAttachments = attachments.isNotEmpty()
+                    entry = entryToSave
                 )
             }
 
             DisposableEffect(Unit) {
                 onDispose {
-                    if (
-                        latestSkipSaveOnDispose
-                    ) {
+                    if (latestSkipSaveOnDispose) {
                         return@onDispose
                     }
 
@@ -660,43 +651,31 @@ fun FlowNavHost(
                         latestEntry
                             ?: return@onDispose
 
-                    if (
-                        isNew &&
-                        !latestEntryPersisted
-                    ) {
+                    scope.launch {
                         if (
-                            entryToSave.text
-                                .isNotBlank() ||
-                            latestAttachments
-                                .isNotEmpty()
+                            isNew &&
+                            !latestEntryPersisted
                         ) {
-                            flowFireModel.saveNewEntry(
-                                entryToSave
-                            )
+                            if (entryToSave.text.isBlank()) {
+                                return@launch
+                            }
 
-                            shouldScrollHomeToTop = true
+                            val saved =
+                                flowFireModel.saveNewEntry(
+                                    entryToSave
+                                )
+
+                            if (saved) {
+                                shouldScrollHomeToTop = true
+                            }
+
+                            return@launch
                         }
 
-                        return@onDispose
-                    }
-
-                    if (
-                        entryToSave.text.isBlank() &&
-                        latestAttachments.isEmpty()
-                    ) {
-                        flowFireModel.deleteEntry(
-                            entryToSave.id
+                        flowFireModel.updateEntry(
+                            entry = entryToSave
                         )
-
-                        return@onDispose
                     }
-
-                    flowFireModel.updateEntry(
-                        entry = entryToSave,
-                        hasAttachments =
-                            latestAttachments
-                                .isNotEmpty()
-                    )
                 }
             }
 
@@ -792,9 +771,7 @@ fun FlowNavHost(
                                 currentEntry
                                     ?: return@launch
 
-                            if (
-                                entryToSave.text.isBlank()
-                            ) {
+                            if (entryToSave.folderId.isBlank()) {
                                 return@launch
                             }
 
