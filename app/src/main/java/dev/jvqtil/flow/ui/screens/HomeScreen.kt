@@ -115,35 +115,8 @@ fun HomeScreen(
         mutableStateOf(entries)
     }
 
-    var knownEntryIds by remember {
-        mutableStateOf(entries.map { it.id }.toSet())
-    }
-
-    var newEntryAnimationIds by remember {
-        mutableStateOf<Set<String>>(emptySet())
-    }
-
     LaunchedEffect(entries) {
-        val currentIds = entries.map { it.id }.toSet()
-
-        val addedIds = currentIds
-            .subtract(knownEntryIds)
-            .filterNot { it == restoringEntryId }
-            .toSet()
-
-        if (addedIds.isNotEmpty()) {
-            newEntryAnimationIds = newEntryAnimationIds + addedIds
-        }
-
-        knownEntryIds = currentIds
         localEntries = entries
-    }
-
-    LaunchedEffect(entries, restoringEntryId) {
-        if (restoringEntryId != null) {
-            newEntryAnimationIds =
-                newEntryAnimationIds - restoringEntryId
-        }
     }
 
     var closeActionsToken by remember {
@@ -467,13 +440,10 @@ fun HomeScreen(
                                 ) {
                                     Text(
                                         text =
-                                            if (
-                                                folder.id == MASTER_FOLDER_ID &&
+                                            if (folder.id == MASTER_FOLDER_ID &&
                                                 folder.name.isBlank()
                                             ) {
-                                                stringResource(
-                                                    R.string.master_folder_label
-                                                )
+                                                stringResource(R.string.master_folder_label)
                                             } else {
                                                 folder.name
                                             },
@@ -587,8 +557,7 @@ fun HomeScreen(
                                 previewLines = previewLines,
                                 shouldAnimate =
                                     entry.id in deletingEntriesIds ||
-                                            entry.id == restoringEntryId ||
-                                            entry.id in newEntryAnimationIds,
+                                            entry.id == restoringEntryId,
                                 isDeleting =
                                     entry.id in deletingEntriesIds,
                                 isDragging = isDragging,
@@ -598,8 +567,7 @@ fun HomeScreen(
                                 onClick = {
                                     if (
                                         entry.id !in deletingEntriesIds &&
-                                        entry.id != restoringEntryId &&
-                                        entry.id !in newEntryAnimationIds
+                                        entry.id != restoringEntryId
                                     ) {
                                         closeActions()
                                         onOpenEntry(entry.id)
@@ -608,8 +576,7 @@ fun HomeScreen(
                                 onDelete = {
                                     if (
                                         entry.id !in deletingEntriesIds &&
-                                        entry.id != restoringEntryId &&
-                                        entry.id !in newEntryAnimationIds
+                                        entry.id != restoringEntryId
                                     ) {
                                         val index = localEntries.indexOfFirst {
                                             it.id == entry.id
@@ -626,8 +593,7 @@ fun HomeScreen(
                                 onToggleCompleted = {
                                     if (
                                         entry.id !in deletingEntriesIds &&
-                                        entry.id != restoringEntryId &&
-                                        entry.id !in newEntryAnimationIds
+                                        entry.id != restoringEntryId
                                     ) {
                                         onToggleCompleted(entry.id)
                                     }
@@ -635,8 +601,7 @@ fun HomeScreen(
                                 onToggleTaskNote = {
                                     if (
                                         entry.id !in deletingEntriesIds &&
-                                        entry.id != restoringEntryId &&
-                                        entry.id !in newEntryAnimationIds
+                                        entry.id != restoringEntryId
                                     ) {
                                         onToggleTaskNote(entry.id)
                                     }
@@ -649,9 +614,6 @@ fun HomeScreen(
                             ) {
                                 deletedEntriesPositions =
                                     deletedEntriesPositions - entry.id
-
-                                newEntryAnimationIds =
-                                    newEntryAnimationIds - entry.id
 
                                 onAnimationFinished(entry.id)
                             }
@@ -678,9 +640,7 @@ fun HomeScreen(
 
         Box(
             modifier = Modifier
-                .align(
-                    Alignment.BottomEnd
-                )
+                .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
                 .padding(16.dp)
         ) {
@@ -732,15 +692,11 @@ fun HomeScreen(
     }
 
     folderActionTarget?.let { folder ->
-        val displayName =
-            if (
-                folder.id == MASTER_FOLDER_ID &&
-                folder.name.isBlank()
-            ) {
-                stringResource(R.string.master_folder_label)
-            } else {
-                folder.name
-            }
+        val displayName = if (folder.id == MASTER_FOLDER_ID && folder.name.isBlank()) {
+            stringResource(R.string.master_folder_label)
+        } else {
+            folder.name
+        }
 
         FolderActionsBottomSheet(
             folder = folder,
