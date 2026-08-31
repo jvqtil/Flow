@@ -93,15 +93,6 @@ interface EntryDao {
     )
 
     @Query(
-        "SELECT COALESCE(MAX(position), -1) + 1 " +
-                "FROM notes " +
-                "WHERE folderId = :folderId"
-    )
-    suspend fun getNextPosition(
-        folderId: String
-    ): Long
-
-    @Query(
         "UPDATE notes " +
                 "SET folderId = :folderId, " +
                 "position = :position " +

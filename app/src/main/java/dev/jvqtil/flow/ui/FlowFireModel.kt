@@ -319,16 +319,26 @@ class FlowFireModel(
         entry: EntryUiModel
     ) {
         val normalizedEntry = entry.copy(
-            text = trimEmptyLines(
-                entry.text
-            )
+            text = trimEmptyLines(entry.text)
         )
+
+        if (normalizedEntry.folderId.isBlank()) {
+            return
+        }
 
         databaseMutex.withLock {
             val existing =
-                repository.findById(
-                    normalizedEntry.id
-                ) ?: return@withLock
+                repository.findById(normalizedEntry.id)
+                    ?: return@withLock
+
+            if (existing.folderId != normalizedEntry.folderId) {
+                repository.moveEntryToFolder(
+                    entry = existing,
+                    targetFolderId = normalizedEntry.folderId
+                )
+
+                return@withLock
+            }
 
             repository.update(
                 normalizedEntry.toDataModel(

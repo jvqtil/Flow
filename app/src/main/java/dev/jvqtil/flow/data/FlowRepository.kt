@@ -175,16 +175,17 @@ class FlowRepository(
         entry: Entry,
         targetFolderId: String
     ) {
-        val nextPosition =
-            entryDao.getNextPosition(
+        database.withWriteTransaction {
+            entryDao.shiftPositionsDown(
                 folderId = targetFolderId
             )
 
-        entryDao.moveToFolder(
-            entryId = entry.id,
-            folderId = targetFolderId,
-            position = nextPosition
-        )
+            entryDao.moveToFolder(
+                entryId = entry.id,
+                folderId = targetFolderId,
+                position = 0L
+            )
+        }
     }
 
     fun observeAttachments(
