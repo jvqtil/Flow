@@ -287,7 +287,7 @@ fun EditorScreen(
                                 .height(42.dp)
                                 .widthIn(
                                     min = 80.dp,
-                                    max = 130.dp
+                                    max = 140.dp
                                 )
                                 .background(
                                     MaterialTheme.colorScheme
