@@ -1,5 +1,6 @@
 package dev.jvqtil.flow.navigation
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -33,16 +34,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.jvqtil.flow.BuildConfig
+import dev.jvqtil.flow.R
 import dev.jvqtil.flow.data.AppPreferences
 import dev.jvqtil.flow.data.Attachment
 import dev.jvqtil.flow.data.AttachmentStorage
-import dev.jvqtil.flow.data.BackupManager
 import dev.jvqtil.flow.data.ENTRY_TYPE_NOTE
 import dev.jvqtil.flow.data.ENTRY_TYPE_TASK
 import dev.jvqtil.flow.data.Feature
 import dev.jvqtil.flow.data.FlowRepository
+import dev.jvqtil.flow.data.backup.BackupManager
+import dev.jvqtil.flow.data.backup.BackupPreview
 import dev.jvqtil.flow.ui.FlowFireModel
 import dev.jvqtil.flow.ui.FlowFireModelFactory
+import dev.jvqtil.flow.ui.components.ImportBackupDialog
 import dev.jvqtil.flow.ui.models.EditorFont
 import dev.jvqtil.flow.ui.models.KeyboardMode
 import dev.jvqtil.flow.ui.models.UiFont
@@ -55,6 +59,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun FlowNavHost(
     repository: FlowRepository,
@@ -66,6 +71,14 @@ fun FlowNavHost(
 
     var updateAvailable by remember {
         mutableStateOf<UpdateModel?>(null)
+    }
+
+    var importUri by remember {
+        mutableStateOf<Uri?>(null)
+    }
+
+    var importPreview by remember {
+        mutableStateOf<BackupPreview?>(null)
     }
 
     LaunchedEffect(Unit) {
@@ -102,38 +115,38 @@ fun FlowNavHost(
             initialValue = null
         )
 
+    val backupManager = remember(
+        repository,
+        attachmentStorage
+    ) {
+        BackupManager(
+            context = context,
+            repository = repository,
+            attachmentStorage = attachmentStorage
+        )
+    }
+
     val exportLauncher =
         rememberLauncherForActivityResult(
             contract =
                 ActivityResultContracts.CreateDocument(
-                    "application/json"
+                    "application/x-flow-backup"
                 )
         ) { uri ->
             if (uri != null) {
                 scope.launch {
                     runCatching {
-                        val entries =
-                            repository.getAllEntries()
-
-                        val folders =
-                            repository.getAllFolders()
-
-                        BackupManager.exportNotes(
-                            context = context,
-                            uri = uri,
-                            entries = entries,
-                            folders = folders
-                        )
+                        backupManager.export(uri)
                     }.onSuccess {
                         Toast.makeText(
                             context,
-                            "Notes exported",
+                            context.getString(R.string.backup_exported_label),
                             Toast.LENGTH_SHORT
                         ).show()
                     }.onFailure {
                         Toast.makeText(
                             context,
-                            "Export failed",
+                            context.getString(R.string.backup_export_failed_label),
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -146,40 +159,63 @@ fun FlowNavHost(
             contract =
                 ActivityResultContracts.OpenDocument()
         ) { uri ->
-            if (uri != null) {
+            if (uri == null) {
+                return@rememberLauncherForActivityResult
+            }
+
+            scope.launch {
+                runCatching {
+                    backupManager.inspect(uri)
+                }.onSuccess { preview ->
+                    importUri = uri
+                    importPreview = preview
+                }.onFailure {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.backup_read_failed_label),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+
+    if (
+        importUri != null &&
+        importPreview != null
+    ) {
+        ImportBackupDialog(
+            preview = importPreview!!,
+            onDismiss = {
+                importUri = null
+                importPreview = null
+            },
+            onRestore = {
+                val uri = importUri
+                    ?: return@ImportBackupDialog
+
+                importUri = null
+                importPreview = null
+
                 scope.launch {
                     runCatching {
-                        val backup =
-                            BackupManager.importNotes(
-                                context = context,
-                                uri = uri
-                            )
-
-                        backup.folders.forEach { folder ->
-                            repository.restoreFolder(
-                                folder
-                            )
-                        }
-
-                        repository.restore(
-                            backup.entries
-                        )
+                        backupManager.restore(uri)
                     }.onSuccess {
                         Toast.makeText(
                             context,
-                            "Notes imported",
+                            context.getString(R.string.backup_restored_label),
                             Toast.LENGTH_SHORT
                         ).show()
                     }.onFailure {
                         Toast.makeText(
                             context,
-                            "Import failed",
+                            context.getString(R.string.backup_restore_failed_label),
                             Toast.LENGTH_SHORT
                         ).show()
                     }
                 }
             }
-        }
+        )
+    }
 
     val flowFireModel: FlowFireModel =
         viewModel(
@@ -316,15 +352,20 @@ fun FlowNavHost(
                 },
                 foldersEnabled = foldersEnabled,
                 swipeGesturesEnabled = swipeGesturesEnabled,
-                entries = if (foldersEnabled && selectedFolderId != null) {
-                    uiState.entries.filter {
-                        it.folderId == selectedFolderId
-                    }
-                } else {
-                    uiState.entries
-                },
+                entries =
+                    if (
+                        foldersEnabled &&
+                        selectedFolderId != null
+                    ) {
+                        uiState.entries.filter {
+                            it.folderId == selectedFolderId
+                        }
+                    } else {
+                        uiState.entries
+                    },
                 folders = uiState.folders,
-                selectedFolderId = selectedFolderId ?: "",
+                selectedFolderId =
+                    selectedFolderId ?: "",
                 previewLines = previewLines,
                 shouldScrollToTop =
                     shouldScrollHomeToTop,
@@ -340,7 +381,9 @@ fun FlowNavHost(
                 deletingEntriesIds =
                     uiState.deletingEntriesIds,
                 onSelectFolder = { folderId ->
-                    flowFireModel.selectFolder(folderId)
+                    flowFireModel.selectFolder(
+                        folderId
+                    )
 
                     scope.launch {
                         AppPreferences.setCurrentFolderId(
@@ -497,16 +540,12 @@ fun FlowNavHost(
                 },
                 onExport = {
                     exportLauncher.launch(
-                        "flow-backup.json"
+                        "flow-backup.flow"
                     )
                 },
                 onImport = {
                     importLauncher.launch(
-                        arrayOf(
-                            "application/json",
-                            "text/json",
-                            "text/plain"
-                        )
+                        arrayOf("*/*")
                     )
                 },
                 onBack = {

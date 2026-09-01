@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
 
@@ -13,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "dev.jvqtil.flow"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 37
         versionCode = 104
         versionName = "1.0.4-1"
@@ -104,4 +105,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.reorderable)
     implementation(libs.coil.compose)
+
+    implementation(libs.kotlinx.serialization.json)
 }

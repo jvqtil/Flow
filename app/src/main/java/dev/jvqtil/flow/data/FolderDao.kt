@@ -46,6 +46,11 @@ interface FolderDao {
         folder: Folder
     )
 
+    @Insert
+    suspend fun insertAll(
+        folders: List<Folder>
+    )
+
     @Update
     suspend fun update(
         folder: Folder
@@ -70,4 +75,9 @@ interface FolderDao {
         id: String,
         position: Long
     )
+
+    @Query(
+        "DELETE FROM folders"
+    )
+    suspend fun deleteAll()
 }

@@ -136,4 +136,9 @@ interface EntryDao {
     suspend fun upsert(
         entry: Entry
     )
+
+    @Query(
+        "DELETE FROM notes"
+    )
+    suspend fun deleteAll()
 }

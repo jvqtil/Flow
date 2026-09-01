@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import java.io.File
+import java.io.InputStream
 import java.util.UUID
 
 data class AttachmentMetadata(
@@ -63,6 +64,47 @@ class AttachmentStorage(
         }
 
         return "attachments/${file.name}"
+    }
+
+    fun restore(
+        inputStream: InputStream,
+        fileName: String
+    ): String {
+        val extension =
+            fileName
+                .substringAfterLast('.', "")
+                .takeIf {
+                    it.isNotBlank() &&
+                            fileName.substringBeforeLast('.', "") != fileName
+                }
+                ?.let { ".$it" }
+                ?: ""
+
+        val file = File(
+            attachmentsDir,
+            "${UUID.randomUUID()}$extension"
+        )
+
+        try {
+            inputStream.use { input ->
+                file.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+        } catch (error: Throwable) {
+            file.delete()
+            throw error
+        }
+
+        return "attachments/${file.name}"
+    }
+
+    fun open(
+        path: String
+    ): InputStream {
+        return getFile(
+            path
+        ).inputStream()
     }
 
     fun getFile(

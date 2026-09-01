@@ -27,6 +27,11 @@ interface AttachmentDao {
         entryId: String
     ): List<Attachment>
 
+    @Query(
+        "SELECT * FROM attachments"
+    )
+    suspend fun getAll(): List<Attachment>
+
     @Insert
     suspend fun insert(
         attachment: Attachment
@@ -65,4 +70,9 @@ interface AttachmentDao {
         "SELECT DISTINCT entryId FROM attachments"
     )
     fun observeEntryIdsWithAttachments(): Flow<List<String>>
+
+    @Query(
+        "DELETE FROM attachments"
+    )
+    suspend fun deleteAll()
 }

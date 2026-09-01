@@ -23,6 +23,22 @@
 
     <string name="import_failed_label">Не удалось импортировать</string>
     <string name="import_label">Импорт</string>
+    <string name="import_backup_title">Импорт резервной копии</string>
+    <string name="import_backup_description">Резервная копия содержит следующие данные:</string>
+    <string name="import_backup_warning">Восстановление заменит все существующие данные.</string>
+    <string name="import_backup_entries_label">Записей</string>
+    <string name="import_backup_entries_breakdown">%1$d заметок · %2$d задач</string>
+    <string name="import_backup_folders_label">Папок</string>
+    <string name="import_backup_attachments_label">Вложений</string>
+    <string name="import_backup_created_label">Создано</string>
+    <string name="import_backup_cancel_button">Отмена</string>
+    <string name="import_backup_restore_button">Восстановить</string>
+
+    <string name="backup_exported_label">Резервная копия экспортирована</string>
+    <string name="backup_export_failed_label">Не удалось экспортировать резервную копию</string>
+    <string name="backup_read_failed_label">Не удалось прочитать резервную копию</string>
+    <string name="backup_restore_failed_label">Не удалось восстановить резервную копию</string>
+    <string name="backup_restored_label">Резервная копия восстановлена</string>
 
     <string name="keyboard_label">Режим клавиатуры</string>
 

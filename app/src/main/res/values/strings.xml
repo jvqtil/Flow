@@ -26,6 +26,22 @@
 
     <string name="import_failed_label">Import failed</string>
     <string name="import_label">Import</string>
+    <string name="import_backup_title">Import backup</string>
+    <string name="import_backup_description">The backup contains the following data:</string>
+    <string name="import_backup_warning">Restoring will replace all existing data.</string>
+    <string name="import_backup_entries_label">Entries</string>
+    <string name="import_backup_entries_breakdown">%1$d notes · %2$d tasks</string>
+    <string name="import_backup_folders_label">Folders</string>
+    <string name="import_backup_attachments_label">Attachments</string>
+    <string name="import_backup_created_label">Created</string>
+    <string name="import_backup_cancel_button">Cancel</string>
+    <string name="import_backup_restore_button">Restore</string>
+
+    <string name="backup_exported_label">Backup exported</string>
+    <string name="backup_export_failed_label">Backup export failed</string>
+    <string name="backup_read_failed_label">Unable to read backup</string>
+    <string name="backup_restore_failed_label">Restore failed</string>
+    <string name="backup_restored_label">Backup restored</string>
 
     <string name="jetbrains_mono_font" translatable="false">JetBrains Mono</string>
 

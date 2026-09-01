@@ -80,12 +80,6 @@ class FlowRepository(
         )
     }
 
-    suspend fun restoreFolder(
-        folder: Folder
-    ) {
-        folderDao.upsert(folder)
-    }
-
     suspend fun restoreFolderWithEntries(
         snapshot: DeletedFolderSnapshot
     ) {
@@ -150,14 +144,6 @@ class FlowRepository(
         entryDao.upsert(entry)
     }
 
-    suspend fun restore(
-        entries: List<Entry>
-    ) {
-        entries.forEach { entry ->
-            entryDao.upsert(entry)
-        }
-    }
-
     suspend fun updateEntriesPositions(
         folderId: String,
         entryIds: List<String>
@@ -207,6 +193,10 @@ class FlowRepository(
         return attachmentDao.observeForEntry(
             entryId
         )
+    }
+
+    suspend fun getAllAttachments(): List<Attachment> {
+        return attachmentDao.getAll()
     }
 
     suspend fun insertAttachment(
@@ -303,5 +293,21 @@ class FlowRepository(
 
     fun observeEntryIdsWithAttachments(): Flow<List<String>> {
         return attachmentDao.observeEntryIdsWithAttachments()
+    }
+
+    suspend fun replaceDatabase(
+        folders: List<Folder>,
+        entries: List<Entry>,
+        attachments: List<Attachment>
+    ) {
+        database.withWriteTransaction {
+            attachmentDao.deleteAll()
+            entryDao.deleteAll()
+            folderDao.deleteAll()
+
+            folderDao.insertAll(folders)
+            entryDao.insertAll(entries)
+            attachmentDao.insertAll(attachments)
+        }
     }
 }
