@@ -3,7 +3,6 @@ package dev.jvqtil.flow.data
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -11,7 +10,6 @@ import dev.jvqtil.flow.ui.models.EditorFont
 import dev.jvqtil.flow.ui.models.KeyboardMode
 import dev.jvqtil.flow.ui.models.UiFont
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(
@@ -82,27 +80,6 @@ object AppPreferences {
 
             preferences[ENABLED_FEATURES_KEY] =
                 features.map { it.name }.toSet()
-        }
-    }
-
-    private val LAST_UPDATE_CHECK =
-        longPreferencesKey("last_update_check")
-
-    suspend fun getLastUpdateCheck(
-        context: Context
-    ): Long =
-        context.dataStore.data
-            .map { preferences ->
-                preferences[LAST_UPDATE_CHECK] ?: 0L
-            }
-            .first()
-
-    suspend fun setLastUpdateCheck(
-        context: Context,
-        timestamp: Long
-    ) {
-        context.dataStore.edit { preferences ->
-            preferences[LAST_UPDATE_CHECK] = timestamp
         }
     }
 

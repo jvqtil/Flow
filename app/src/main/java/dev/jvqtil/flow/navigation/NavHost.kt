@@ -73,40 +73,45 @@ fun FlowNavHost(
         mutableStateOf<UpdateModel?>(null)
     }
 
-    var importUri by remember {
-        mutableStateOf<Uri?>(null)
+    var checkingForUpdates by remember {
+        mutableStateOf(false)
     }
 
-    var importPreview by remember {
-        mutableStateOf<BackupPreview?>(null)
-    }
+    val currentVersion =
+        BuildConfig.VERSION_NAME.removeSuffix("-debug")
 
-    LaunchedEffect(Unit) {
-        val lastCheck =
-            AppPreferences.getLastUpdateCheck(context)
+    fun checkForUpdates(showToast: Boolean) {
+        if (checkingForUpdates) {
+            return
+        }
 
-        val now =
-            System.currentTimeMillis()
+        scope.launch {
+            checkingForUpdates = true
 
-        val oneDay =
-            24 * 60 * 60 * 1000L
-
-        if (now - lastCheck >= oneDay) {
             runCatching {
                 UpdateChecker().check(
-                    currentVersion =
-                        BuildConfig.VERSION_NAME
-                            .removeSuffix("-debug")
+                    currentVersion = currentVersion
                 )
             }.onSuccess { update ->
                 updateAvailable = update
-
-                AppPreferences.setLastUpdateCheck(
-                    context = context,
-                    timestamp = now
-                )
+            }.onFailure {
+                if (showToast) {
+                    Toast.makeText(
+                        context,
+                        context.getString(
+                            R.string.update_check_failed_label
+                        ),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
+
+            checkingForUpdates = false
         }
+    }
+
+    LaunchedEffect(Unit) {
+        checkForUpdates(false)
     }
 
     val currentFolderId by AppPreferences
@@ -114,6 +119,14 @@ fun FlowNavHost(
         .collectAsStateWithLifecycle(
             initialValue = null
         )
+
+    var importUri by remember {
+        mutableStateOf<Uri?>(null)
+    }
+
+    var importPreview by remember {
+        mutableStateOf<BackupPreview?>(null)
+    }
 
     val backupManager = remember(
         repository,
@@ -336,20 +349,6 @@ fun FlowNavHost(
                     ?: uiState.folders.firstOrNull()?.id
 
             HomeScreen(
-                updateAvailable = updateAvailable,
-                onUpdateClick = {
-                    updateAvailable?.url?.let { url ->
-                        context.startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                url.toUri()
-                            )
-                        )
-                    }
-                },
-                onDismissUpdate = {
-                    updateAvailable = null
-                },
                 foldersEnabled = foldersEnabled,
                 swipeGesturesEnabled = swipeGesturesEnabled,
                 entries =
@@ -483,6 +482,21 @@ fun FlowNavHost(
 
         composable(SETTINGS_ROUTE) {
             SettingsScreen(
+                updateAvailable = updateAvailable,
+                checkingForUpdates = checkingForUpdates,
+                onCheckForUpdates = {
+                    checkForUpdates(true)
+                },
+                onUpdateClick = {
+                    updateAvailable?.url?.let { url ->
+                        context.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                url.toUri()
+                            )
+                        )
+                    }
+                },
                 enabledFeatures = enabledFeatures,
                 onFeatureChanged = { feature, enabled ->
                     scope.launch {

@@ -1,5 +1,12 @@
 <resources>
 
+    <string name="latest_version_installed_label">Установлена актуальная версия</string>
+    <string name="update_available_label">Доступно обновление</string>
+    <string name="update_available_version">Новая версия %1$s</string>
+    <string name="check_for_updates_label">Проверить обновления</string>
+    <string name="update_label">Обновить</string>
+    <string name="update_check_failed_label">Не удалось проверить обновления</string>
+
     <string name="add_note_label">Добавить запись</string>
     <string name="appearance_label">Внешний вид</string>
     <string name="attach_file_label">Прикрепить файл</string>

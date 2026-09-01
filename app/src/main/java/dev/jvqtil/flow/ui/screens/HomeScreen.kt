@@ -12,7 +12,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,14 +33,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -72,7 +68,6 @@ import dev.jvqtil.flow.ui.components.FolderChoiceBottomSheet
 import dev.jvqtil.flow.ui.components.NewFolderBottomSheet
 import dev.jvqtil.flow.ui.components.RenameFolderBottomSheet
 import dev.jvqtil.flow.ui.components.UndoPopup
-import dev.jvqtil.flow.update.UpdateModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
@@ -81,9 +76,6 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun HomeScreen(
-    updateAvailable: UpdateModel?,
-    onUpdateClick: () -> Unit,
-    onDismissUpdate: () -> Unit,
     foldersEnabled: Boolean,
     swipeGesturesEnabled: Boolean,
     entries: List<EntryUiModel>,
@@ -332,95 +324,12 @@ fun HomeScreen(
             )
         }
 
-        AnimatedVisibility(
-            visible = updateAvailable != null,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(
-                    start = 16.dp,
-                    top = 62.dp,
-                    end = 16.dp
-                ),
-            enter =
-                fadeIn(
-                    animationSpec = tween(200)
-                ) +
-                        slideInVertically(
-                            initialOffsetY = { -it / 2 },
-                            animationSpec = tween(200)
-                        ),
-            exit =
-                fadeOut(
-                    animationSpec = tween(150)
-                ) +
-                        slideOutVertically(
-                            targetOffsetY = { -it / 2 },
-                            animationSpec = tween(150)
-                        )
-        ) {
-            updateAvailable?.let { update ->
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                onClick = onUpdateClick
-                            )
-                            .padding(
-                                start = 14.dp,
-                                end = 6.dp,
-                                top = 10.dp,
-                                bottom = 10.dp
-                            ),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SystemUpdate,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-
-                        Spacer(
-                            modifier = Modifier.width(10.dp)
-                        )
-
-                        Text(
-                            text = "Update available • v${update.version}",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        IconButton(
-                            onClick = onDismissUpdate,
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
         if (foldersEnabled) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(
-                        top = if (updateAvailable != null) {
-                            118.dp
-                        } else {
-                            64.dp
-                        },
+                        top = 64.dp,
                         start = 16.dp,
                         end = 16.dp
                     ),
@@ -623,8 +532,6 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(
                     top = when {
-                        updateAvailable != null && foldersEnabled -> 170.dp
-                        updateAvailable != null -> 116.dp
                         foldersEnabled -> 116.dp
                         else -> 64.dp
                     },

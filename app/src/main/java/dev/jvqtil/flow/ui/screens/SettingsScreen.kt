@@ -6,6 +6,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,16 +17,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.NorthEast
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.SystemUpdate
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -53,11 +63,16 @@ import dev.jvqtil.flow.ui.models.EditorFont
 import dev.jvqtil.flow.ui.models.KeyboardMode
 import dev.jvqtil.flow.ui.models.UiFont
 import dev.jvqtil.flow.ui.models.fontFamily
+import dev.jvqtil.flow.update.UpdateModel
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    updateAvailable: UpdateModel?,
+    checkingForUpdates: Boolean,
+    onCheckForUpdates: () -> Unit,
+    onUpdateClick: () -> Unit,
     enabledFeatures: Set<Feature>,
     onFeatureChanged: (Feature, Boolean) -> Unit,
     defaultEntryType: String,
@@ -120,6 +135,13 @@ fun SettingsScreen(
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
         ) {
+            UpdateCard(
+                updateAvailable = updateAvailable,
+                checkingForUpdates = checkingForUpdates,
+                onCheckForUpdates = onCheckForUpdates,
+                onUpdateClick = onUpdateClick
+            )
+
             Spacer(
                 modifier = Modifier.height(16.dp)
             )
@@ -601,6 +623,151 @@ fun SettingsScreen(
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpdateCard(
+    updateAvailable: UpdateModel?,
+    checkingForUpdates: Boolean,
+    onCheckForUpdates: () -> Unit,
+    onUpdateClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor =
+                MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = CircleShape,
+                    color =
+                        if (updateAvailable == null) {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.primaryContainer
+                        }
+                ) {
+                    Icon(
+                        imageVector =
+                            if (updateAvailable == null) {
+                                Icons.Outlined.CheckCircle
+                            } else {
+                                Icons.Outlined.SystemUpdate
+                            },
+                        contentDescription = null,
+                        modifier = Modifier.padding(9.dp),
+                        tint =
+                            if (updateAvailable == null) {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            }
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = stringResource(
+                            if (updateAvailable == null) {
+                                R.string.latest_version_installed_label
+                            } else {
+                                R.string.update_available_label
+                            }
+                        ),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    if (updateAvailable != null) {
+                        Text(
+                            text = stringResource(
+                                R.string.update_available_version,
+                                updateAvailable.version
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            if (updateAvailable == null) {
+                Button(
+                    onClick = onCheckForUpdates,
+                    enabled = !checkingForUpdates,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (checkingForUpdates) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(
+                                R.string.check_for_updates_label
+                            )
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = onUpdateClick,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.update_label
+                            )
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = onCheckForUpdates,
+                        enabled = !checkingForUpdates,
+                        modifier = Modifier.size(40.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        if (checkingForUpdates) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = stringResource(
+                                    R.string.check_for_updates_label
+                                ),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }

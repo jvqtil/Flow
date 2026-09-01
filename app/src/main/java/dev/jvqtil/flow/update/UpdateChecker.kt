@@ -62,7 +62,7 @@ class UpdateChecker {
 
                 UpdateModel(
                     version = latestVersion,
-                    url = json.getString("html_url")
+                    url = "https://github.com/jvqtil/flow/releases/latest"
                 )
             } finally {
                 connection.disconnect()
