@@ -22,6 +22,7 @@ Notes & Tasks app for Android. Fully native. Just your stuff, no bullshit
 - Predictive back gesture support (Android 16+)
 - Customizable UI and editor fonts
 - Configurable keyboard behavior
+- Export and import
 
 [1] Turned off by default. Enable it in Settings.
 
