@@ -95,37 +95,47 @@ class BackupManager(
 
             try {
 
-                BackupReader
-                    .open(file)
-                    .use { archive ->
+                if (
+                    isLegacyBackup(
+                        file
+                    )
+                ) {
+                    inspectLegacy(
+                        file
+                    )
+                } else {
+                    BackupReader
+                        .open(file)
+                        .use { archive ->
 
-                        val backup =
-                            archive.backup
+                            val backup =
+                                archive.backup
 
-                        BackupPreview(
-                            notes =
-                                backup.entries.count {
-                                    it.type == "note"
-                                },
+                            BackupPreview(
+                                notes =
+                                    backup.entries.count {
+                                        it.type == "note"
+                                    },
 
-                            tasks =
-                                backup.entries.count {
-                                    it.type == "task"
-                                },
+                                tasks =
+                                    backup.entries.count {
+                                        it.type == "task"
+                                    },
 
-                            folders =
-                                backup.folders.size,
+                                folders =
+                                    backup.folders.size,
 
-                            attachments =
-                                backup.attachments.size,
+                                attachments =
+                                    backup.attachments.size,
 
-                            createdAt =
-                                backup.manifest.createdAt,
+                                createdAt =
+                                    backup.manifest.createdAt,
 
-                            version =
-                                backup.manifest.formatVersion
-                        )
-                    }
+                                version =
+                                    backup.manifest.formatVersion
+                            )
+                        }
+                }
 
             } finally {
                 file.delete()
@@ -141,17 +151,115 @@ class BackupManager(
 
         try {
 
-            BackupReader
-                .open(file)
-                .use { archive ->
+            if (
+                isLegacyBackup(
+                    file
+                )
+            ) {
+                restoreLegacy(
+                    file
+                )
+            } else {
+                BackupReader
+                    .open(file)
+                    .use { archive ->
 
-                    restore(
-                        archive
-                    )
-                }
+                        restore(
+                            archive
+                        )
+                    }
+            }
 
         } finally {
             file.delete()
+        }
+    }
+
+    private suspend fun restoreLegacy(
+        file: File
+    ) {
+        val value =
+            file
+                .readText(
+                    Charsets.UTF_8
+                )
+
+        val legacy =
+            LegacyBackupReader.read(
+                value
+            )
+
+        repository.replaceDatabase(
+            folders =
+                legacy.folders,
+
+            entries =
+                legacy.entries,
+
+            attachments =
+                emptyList()
+        )
+    }
+
+    private fun inspectLegacy(
+        file: File
+    ): BackupPreview {
+        val value =
+            file
+                .readText(
+                    Charsets.UTF_8
+                )
+
+        val legacy =
+            LegacyBackupReader.read(
+                value
+            )
+
+        return BackupPreview(
+            notes =
+                legacy.entries.count {
+                    it.type == "note"
+                },
+
+            tasks =
+                legacy.entries.count {
+                    it.type == "task"
+                },
+
+            folders =
+                legacy.folders.size,
+
+            attachments = 0,
+
+            createdAt =
+                Instant
+                    .ofEpochMilli(
+                        file.lastModified()
+                    )
+                    .toString(),
+
+            version =
+                5
+        )
+    }
+
+    // yea i know this isnt the best way to do the thing but it works
+    private fun isLegacyBackup(
+        file: File
+    ): Boolean {
+        return try {
+            file.inputStream().use { input ->
+
+                val firstByte =
+                    input.read()
+
+                firstByte ==
+                        '{'.code
+            }
+        } catch (
+            _: Throwable
+        ) {
+            false
         }
     }
 
