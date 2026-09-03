@@ -16,8 +16,8 @@ android {
         applicationId = "dev.jvqtil.flow"
         minSdk = 26
         targetSdk = 37
-        versionCode = 104
-        versionName = "1.0.4-1"
+        versionCode = 110
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
