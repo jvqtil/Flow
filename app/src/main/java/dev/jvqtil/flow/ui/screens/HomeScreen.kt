@@ -657,6 +657,21 @@ fun HomeScreen(
                     }
                 }
             }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.background,
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
         }
 
         Box(
