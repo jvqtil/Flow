@@ -130,7 +130,7 @@ fun FolderChoiceBottomSheet(
                     stringResource(R.string.master_folder_label)
                 else folder.name,
                 backgroundColor =
-                    MaterialTheme.colorScheme.primaryContainer,
+                    MaterialTheme.colorScheme.surfaceContainer,
                 icon = {
                     Icon(
                         imageVector = Icons.Default.Folder,
